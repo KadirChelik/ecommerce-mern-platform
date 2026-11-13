@@ -1,0 +1,693 @@
+[
+  {
+    "id": 1,
+    "name": "Çiçekli Elbise",
+    "discountedPrice": "199,99",
+    "price": "269,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%85 Pamuk, %15 Polyester",
+    "category": ["indirim", "kadın", "elbise", "seçtiklerimiz"],
+    "description": "Geniş kesim, çiçek desenli, kısa kollu, yuvarlak yaka, beli lastikli, kemerli, önü düğmeli, kumaş elbise.",
+    "colors": [
+      {
+        "name": "Beyaz",
+        "photos":["/img/product-1.jpg", "/img/product-2.jpg", "/img/product-3.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 1
+          },
+          {
+            "name": "S",
+            "stock": 15
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 5
+          },
+          {
+            "name": "XL",
+            "stock": 2
+          },
+          {
+            "name": "XXL",
+            "stock": 1
+          }
+        ]
+      },
+      {
+        "name": "Pembe",
+        "photos":["/img/product-2.jpg", "/img/product-5.jpg", "/img/product-4.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 4
+          },
+          {
+            "name": "M",
+            "stock": 6
+          },
+          {
+            "name": "L",
+            "stock": 3
+          },
+          {
+            "name": "XL",
+            "stock": 1
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Beyaz Tişört",
+    "price": "499,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["aksesuar","yeni", "kadın", "tişört", "seçtiklerimiz", "çok satanlar"],
+    "description": "Beyaz, kısa kollu, yuvarlak yaka, kumaş tişört.",
+    "colors": [
+      {
+        "name": "Beyaz",
+        "photos":["/img/product-3.jpg", "/img/product-2.jpg", "/img/product-1.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 2
+          },
+          {
+            "name": "XL",
+            "stock": 1
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Çiçek Desenli Etek",
+    "discountedPrice": "299,99",
+    "price": "399,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%90 Pamuk, %10 Polyester",
+    "category": ["çocuk","indirim", "kadın", "etek", "seçtiklerimiz", "yeni"],
+    "description": "Çiçek desenli, kısa, beli lastikli, kumaş etek.",
+    "colors": [
+      {
+        "name": "Kırmızı",
+        "photos":["/img/product-4.jpg", "/img/product-2.jpg", "/img/product-3.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 2
+          },
+          {
+            "name": "XL",
+            "stock": 1
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "name": "Mavi",
+        "photos":["/img/product-5.jpg", "/img/product-1.jpg", "/img/product-6.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 2
+          },
+          {
+            "name": "M",
+            "stock": 4
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 1
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "name": "Siyah",
+        "photos":["/img/product-6.jpg", "/img/product-4.jpg", "/img/product-1.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 2
+          },
+          {
+            "name": "M",
+            "stock": 4
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Siyah Ceket",
+    "discountedPrice": "189,99",
+    "price": "249,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %15 Polyester, %10 Keten",
+    "category": ["indirim", "kadın", "yeni", "ceket", "seçtiklerimiz", "çok satanlar"],
+    "description": "Siyah, uzun kollu, düğmeli, kumaş ceket.",
+    "colors": [
+      {
+        "name": "Siyah",
+        "photos":["/img/product-1.jpg", "/img/product-4.jpg", "/img/product-3.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 2
+          },
+          {
+            "name": "XL",
+            "stock": 1
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Çiçekli Bluz",
+    "price": "699,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%100 Pamuk",
+    "category": ["bluz", "kadın", "yeni", "çok satanlar", "seçtiklerimiz"],
+    "description": "Çiçek desenli, kısa kollu, yuvarlak yaka, kumaş bluz.",
+    "colors": [
+      {
+        "name": "Kırmızı",
+        "photos":["/img/product-5.jpg", "/img/product-6.jpg", "/img/product-4.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "name": "Mavi",
+        "photos":["/img/product-6.jpg", "/img/product-4.jpg", "/img/product-3.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 2
+          },
+          {
+            "name": "M",
+            "stock": 4
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Siyah Kaban",
+    "discountedPrice": "599,99",
+    "price": "699,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["indirim", "kadın", "ceket", "seçtiklerimiz"],
+    "description": "Siyah, uzun kollu, kapüşonlu, cepli, fermuarlı, kumaş kaban.",
+    "colors": [
+      {
+        "name": "Siyah",
+        "photos":["/img/product-3.jpg", "/img/product-2.jpg", "/img/product-1.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 2
+          },
+          {
+            "name": "M",
+            "stock": 4
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Çiçekli Yazlık Elbise",
+    "price": "499,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["elbise", "kadın", "çok satanlar", "seçtiklerimiz"],
+    "description": "Geniş kesim, çiçek desenli, kısa kollu, yuvarlak yaka, kumaş yazlık elbise.",
+    "colors": [
+      {
+        "name": "Mor",
+        "photos":["/img/product-6.jpg", "/img/product-5.jpg", "/img/product-3.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "name": "Beyaz",
+        "photos":["/img/product-5.jpg", "/img/product-4.jpg", "/img/product-1.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 2
+          },
+          {
+            "name": "M",
+            "stock": 4
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Pembe Gömlek",
+    "discountedPrice": "349,99",
+    "price": "399,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["indirim", "kadın", "gömlek", "çok satanlar", "yeni"],
+    "description": "Pembe, uzun kollu, düğmeli, kumaş gömlek.",
+    "colors": [
+      {
+        "name": "Pembe",
+        "photos":["/img/product-3.jpg", "/img/product-2.jpg", "/img/product-5.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Takım Elbise",
+    "discountedPrice": "699,99",
+    "price": "799,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["erkek", "takım elbise", "yeni", "çok satanlar"],
+    "description": "Şık, siyah takım elbise, uzun kollu, düğmeli ceket ve pantolon.",
+    "colors": [
+      {
+        "name": "Siyah",
+        "photos":["/img/product-2.jpg", "/img/product-6.jpg", "/img/product-3.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      },
+      {
+        "name": "Mavi",
+        "photos":["/img/product-4.jpg", "/img/product-1.jpg", "/img/product-5.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 2
+          },
+          {
+            "name": "M",
+            "stock": 4
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Mavi Sweatshirt",
+    "price": "299,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["erkek", "sweatshirt", "yeni", "çok satanlar"],
+    "description": "Mavi, uzun kollu, kapüşonlu, cepli, kumaş sweatshirt.",
+    "colors": [
+      {
+        "name": "Mavi",
+        "photos":["/img/product-4.jpg", "/img/product-2.jpg", "/img/product-5.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Kırmızı Kazak",
+    "discountedPrice": "199,99",
+    "price": "249,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["indirim", "erkek", "kazak", "çok satanlar"],
+    "description": "Kırmızı, uzun kollu, yuvarlak yaka, kumaş kazak.",
+    "colors": [
+      {
+        "name": "Kırmızı",
+        "photos":["/img/product-1.jpg", "/img/product-5.jpg", "/img/product-6.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 5
+          },
+          {
+            "name": "M",
+            "stock": 3
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Yeşil Abiye",
+    "price": "999,99",
+    "brand": "Koton",
+    "fit": "Regular",
+    "material":"%75 Pamuk, %25 Polyester",
+    "category": ["kadın", "abiye", "yeni"],
+    "description": "Yeşil, uzun kollu, beli lastikli, kumaş abiye.",
+    "colors": [
+      {
+        "name": "Yeşil",
+        "photos":["/img/product-3.jpg", "/img/product-1.jpg", "/img/product-5.jpg"],
+        "sizes": [
+          {
+            "name": "XS",
+            "stock": 0
+          },
+          {
+            "name": "S",
+            "stock": 2
+          },
+          {
+            "name": "M",
+            "stock": 4
+          },
+          {
+            "name": "L",
+            "stock": 0
+          },
+          {
+            "name": "XL",
+            "stock": 0
+          },
+          {
+            "name": "XXL",
+            "stock": 0
+          }
+        ]
+      }
+    ]
+  }
+]
