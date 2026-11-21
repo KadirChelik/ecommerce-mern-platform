@@ -42,12 +42,24 @@ function AppShell() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [trackedOrderNumber, setTrackedOrderNumber] = useState<string | undefined>(undefined);
   const [cartToast, setCartToast] = useState<{ title: string; size: string } | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimersRef = useRef<number[]>([]);
+
+  const clearToastTimers = () => {
+    for (const id of toastTimersRef.current) window.clearTimeout(id);
+    toastTimersRef.current = [];
+  };
+
+  useEffect(() => () => clearToastTimers(), []);
 
   const showAddedToast = (info: { title: string; size: string }) => {
+    clearToastTimers();
     setCartToast(info);
-    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setCartToast(null), 3500);
+    setToastVisible(false);
+    window.requestAnimationFrame(() => setToastVisible(true));
+    const hideTimer = window.setTimeout(() => setToastVisible(false), 2900);
+    const unmountTimer = window.setTimeout(() => setCartToast(null), 3200);
+    toastTimersRef.current = [hideTimer, unmountTimer];
   };
 
   // Sync URL query params bidirectionally (filters + ?product=<slug>)
@@ -183,7 +195,9 @@ function AppShell() {
       {cartToast && !cartOpen && (
         <div
           role="status"
-          className="animate-toast-in fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-white/10 bg-[#141413] px-4 py-2.5 text-xs text-[#FAF9F6] shadow-xl"
+          className={`fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-white/10 bg-[#141413] px-4 py-2.5 text-xs text-[#FAF9F6] shadow-xl will-change-[opacity,transform] transition-[opacity,transform] duration-250 ease-out ${
+            toastVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
+          }`}
         >
           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#1F3A2E] text-white">
             <Check className="h-3 w-3" />

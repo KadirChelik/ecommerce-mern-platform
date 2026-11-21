@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SlidersHorizontal, X, Check, Eye } from 'lucide-react';
 import {
   computeFacetCounts,
@@ -35,7 +35,20 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
   const { lang, t, products, addToCart } = useStore();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [quickSizeProductId, setQuickSizeProductId] = useState<string | null>(null);
-  const [quickAdded, setQuickAdded] = useState<{ id: string; size: string } | null>(null);
+  const [quickAdded, setQuickAdded] = useState<{
+    id: string;
+    size: string;
+    pinned: boolean;
+    showLabel: boolean;
+  } | null>(null);
+  const quickTimersRef = useRef<number[]>([]);
+
+  const clearQuickTimers = () => {
+    for (const id of quickTimersRef.current) window.clearTimeout(id);
+    quickTimersRef.current = [];
+  };
+
+  useEffect(() => () => clearQuickTimers(), []);
 
   useEffect(() => {
     if (!quickSizeProductId) return;
@@ -104,13 +117,28 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
     if (!available) return;
     const res = addToCart(product, available.sku, 1);
     if (res.added) {
+      clearQuickTimers();
       setQuickSizeProductId(null);
-      setQuickAdded({ id: product.id, size });
+      setQuickAdded({ id: product.id, size, pinned: true, showLabel: true });
       onItemAdded?.({ title: product.title[lang], size });
-      setTimeout(
-        () => setQuickAdded((prev) => (prev?.id === product.id ? null : prev)),
-        1500,
-      );
+
+      // Phase 1: release pin so the bar glides down cleanly while still showing added confirmation
+      const t1 = window.setTimeout(() => {
+        setQuickAdded((prev) =>
+          prev?.id === product.id ? { ...prev, pinned: false } : prev,
+        );
+      }, 1350);
+      // Phase 2: fade label back to default after exit slide completes (for hovered cards)
+      const t2 = window.setTimeout(() => {
+        setQuickAdded((prev) =>
+          prev?.id === product.id ? { ...prev, showLabel: false } : prev,
+        );
+      }, 1700);
+      // Phase 3: clear state cleanly
+      const t3 = window.setTimeout(() => {
+        setQuickAdded((prev) => (prev?.id === product.id ? null : prev));
+      }, 1950);
+      quickTimersRef.current = [t1, t2, t3];
     }
   };
 
@@ -431,7 +459,9 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
             <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
               {filteredProducts.map((product) => {
                 const totalStock = getProductTotalStock(product);
-                const isAdded = quickAdded?.id === product.id;
+                const isPinnedAdded = quickAdded?.id === product.id && quickAdded.pinned;
+                const isShowingAddedLabel = quickAdded?.id === product.id && quickAdded.showLabel;
+                const addedSizeLabel = quickAdded?.id === product.id ? quickAdded.size : '';
                 const isSelectingSize = quickSizeProductId === product.id;
 
                 return (
@@ -467,90 +497,111 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
                         ) : null}
                       </div>
 
-                      {/* Hover Quick Actions or Inline Size Selector */}
-                      {isSelectingSize ? (
-                        <div
-                          key="quick-size-picker"
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute inset-x-3 bottom-3 rounded-xl border border-[#E7E5E0] bg-[#FAF9F6]/95 p-2.5 backdrop-blur-xs shadow-sm"
-                        >
-                          <div className="mb-1.5 flex items-center justify-between">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#57534C]">
-                              {t.product.selectSizePrompt}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setQuickSizeProductId(null);
-                              }}
-                              aria-label={t.product.close}
-                              className="rounded-full p-0.5 text-[#6A665E] hover:bg-[#EAE6DC] hover:text-[#141413] cursor-pointer"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {product.sizes.map((size) => {
-                              const variant = findVariantForSize(product, size);
-                              const hasStock = Boolean(variant);
-                              return (
-                                <button
-                                  key={size}
-                                  type="button"
-                                  disabled={!hasStock}
-                                  onClick={(e) => handleQuickSizeSelect(e, product, size)}
-                                  className={`min-w-[34px] flex-1 rounded-md border py-1.5 text-[11px] font-medium transition-colors ${
-                                    hasStock
-                                      ? 'border-[#E7E5E0] bg-white text-[#141413] hover:border-[#141413] hover:bg-[#141413] hover:text-[#FAF9F6] cursor-pointer'
-                                      : 'border-[#E7E5E0] bg-[#F2EFE9] text-[#A29D94] line-through cursor-not-allowed'
-                                  }`}
-                                >
-                                  {size}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          key="quick-actions"
-                          className={`absolute inset-x-3 bottom-3 flex items-center gap-2 transition-[opacity,transform] duration-200 ${
-                            isAdded
-                              ? 'opacity-100 translate-y-0'
-                              : 'opacity-100 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0'
-                          }`}
-                        >
+                      {/* Persistent Smooth Inline Size Selector Overlay */}
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        aria-hidden={!isSelectingSize}
+                        className={`absolute inset-x-3 bottom-3 rounded-xl border border-[#E7E5E0] bg-[#FAF9F6]/95 p-2.5 backdrop-blur-xs shadow-sm will-change-[opacity,transform] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                          isSelectingSize
+                            ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                            : 'opacity-0 translate-y-2 scale-[0.98] pointer-events-none'
+                        }`}
+                      >
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#57534C]">
+                            {t.product.selectSizePrompt}
+                          </span>
                           <button
                             type="button"
-                            onClick={(e) => handleOpenQuickSize(e, product)}
-                            disabled={totalStock === 0}
-                            className="flex-1 rounded-full bg-[#141413]/95 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#FAF9F6] hover:bg-[#141413] disabled:opacity-40 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
-                          >
-                            {isAdded ? (
-                              <>
-                                <Check className="h-3.5 w-3.5" />
-                                <span>
-                                  {t.product.addedToBag} ({quickAdded?.size})
-                                </span>
-                              </>
-                            ) : (
-                              <span>+ {t.product.addToBag}</span>
-                            )}
-                          </button>
-                          <button
-                            type="button"
+                            tabIndex={isSelectingSize ? 0 : -1}
                             onClick={(e) => {
                               e.stopPropagation();
-                              onSelectProduct(product);
+                              setQuickSizeProductId(null);
                             }}
-                            className="rounded-full bg-white/95 p-2 text-[#141413] border border-[#E7E5E0] hover:bg-white cursor-pointer"
-                            aria-label={t.catalog.quickView}
+                            aria-label={t.product.close}
+                            className="rounded-full p-0.5 text-[#6A665E] hover:bg-[#EAE6DC] hover:text-[#141413] cursor-pointer"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <X className="h-3 w-3" />
                           </button>
                         </div>
-                      )}
+                        <div className="flex flex-wrap gap-1.5">
+                          {product.sizes.map((size) => {
+                            const variant = findVariantForSize(product, size);
+                            const hasStock = Boolean(variant);
+                            return (
+                              <button
+                                key={size}
+                                type="button"
+                                tabIndex={isSelectingSize ? 0 : -1}
+                                disabled={!hasStock}
+                                onClick={(e) => handleQuickSizeSelect(e, product, size)}
+                                className={`min-w-[34px] flex-1 rounded-md border py-1.5 text-[11px] font-medium transition-colors duration-150 ${
+                                  hasStock
+                                    ? 'border-[#E7E5E0] bg-white text-[#141413] hover:border-[#141413] hover:bg-[#141413] hover:text-[#FAF9F6] cursor-pointer'
+                                    : 'border-[#E7E5E0] bg-[#F2EFE9] text-[#A29D94] line-through cursor-not-allowed'
+                                }`}
+                              >
+                                {size}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Persistent Smooth Quick Action Bar Overlay */}
+                      <div
+                        className={`absolute inset-x-3 bottom-3 flex items-center gap-2 will-change-[opacity,transform] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                          isSelectingSize
+                            ? 'opacity-0 translate-y-2 pointer-events-none'
+                            : isPinnedAdded
+                              ? 'opacity-100 translate-y-0 pointer-events-auto'
+                              : 'opacity-100 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 sm:pointer-events-none sm:group-hover:pointer-events-auto'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenQuickSize(e, product)}
+                          disabled={totalStock === 0}
+                          className={`relative h-9 flex-1 overflow-hidden rounded-full text-[11px] font-medium uppercase tracking-[0.12em] text-[#FAF9F6] disabled:opacity-40 transition-colors duration-300 cursor-pointer ${
+                            isShowingAddedLabel
+                              ? 'bg-[#1F3A2E] hover:bg-[#1F3A2E]'
+                              : 'bg-[#141413]/95 hover:bg-[#141413]'
+                          }`}
+                        >
+                          <span
+                            className={`absolute inset-0 flex items-center justify-center transition-[opacity,transform] duration-200 ease-out ${
+                              isShowingAddedLabel
+                                ? 'opacity-0 -translate-y-1.5'
+                                : 'opacity-100 translate-y-0'
+                            }`}
+                          >
+                            + {t.product.addToBag}
+                          </span>
+                          <span
+                            className={`absolute inset-0 flex items-center justify-center gap-1.5 transition-[opacity,transform] duration-200 ease-out ${
+                              isShowingAddedLabel
+                                ? 'opacity-100 translate-y-0'
+                                : 'opacity-0 translate-y-1.5'
+                            }`}
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            <span>
+                              {t.product.addedToBag} ({addedSizeLabel})
+                            </span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectProduct(product);
+                          }}
+                          className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-white/95 text-[#141413] border border-[#E7E5E0] hover:bg-white cursor-pointer shrink-0 transition-colors"
+                          aria-label={t.catalog.quickView}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Metadata */}
