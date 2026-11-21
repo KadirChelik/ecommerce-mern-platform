@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, X } from 'lucide-react';
-import { formatPriceTry } from '../../shared/commerce.js';
+import { formatPriceTry, getProductTotalStock } from '../../shared/commerce.js';
 import type { Product } from '../../shared/types.js';
 import { useStore } from '../context/StoreContext.js';
 
@@ -14,13 +14,13 @@ export function ProductDetailModal({ product, onClose, onOpenCart }: ProductDeta
   const { lang, t, addToCart, cart } = useStore();
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<string>('');
-  const [feedback, setFeedback] = useState<'added' | 'max' | null>(null);
+  const [feedback, setFeedback] = useState<'added' | 'max' | 'need_size' | null>(null);
 
   useEffect(() => {
     if (!product) return;
     const firstAvailable = product.variants.find((v) => v.stock > 0) ?? product.variants[0];
     setSelectedColor(firstAvailable?.colorId ?? product.colors[0]?.id ?? '');
-    setSelectedSize(firstAvailable?.size ?? product.sizes[0] ?? '');
+    setSelectedSize('');
     setFeedback(null);
   }, [product]);
 
@@ -35,13 +35,18 @@ export function ProductDetailModal({ product, onClose, onOpenCart }: ProductDeta
 
   if (!product) return null;
 
-  const activeVariant = product.variants.find(
-    (v) => v.colorId === selectedColor && v.size === selectedSize,
-  );
+  const totalProductStock = getProductTotalStock(product);
+  const activeVariant = selectedSize
+    ? product.variants.find((v) => v.colorId === selectedColor && v.size === selectedSize)
+    : undefined;
   const stock = activeVariant?.stock ?? 0;
   const currentInBag = cart.find((c) => c.sku === activeVariant?.sku)?.quantity ?? 0;
 
   const handleAdd = () => {
+    if (!selectedSize) {
+      setFeedback('need_size');
+      return;
+    }
     if (!activeVariant) return;
     const res = addToCart(product, activeVariant.sku, 1);
     if (res.added) {
@@ -160,13 +165,18 @@ export function ProductDetailModal({ product, onClose, onOpenCart }: ProductDeta
                     <button
                       key={size}
                       type="button"
-                      onClick={() => setSelectedSize(size)}
+                      onClick={() => {
+                        setSelectedSize(size);
+                        if (feedback === 'need_size') setFeedback(null);
+                      }}
                       className={`rounded-lg border py-2 text-xs font-medium transition-colors cursor-pointer ${
                         active
                           ? 'border-[#141413] bg-[#141413] text-[#FAF9F6]'
                           : sizeStock === 0
                             ? 'border-[#E7E5E0] bg-[#F2EFE9] text-[#A29D94] line-through'
-                            : 'border-[#E7E5E0] bg-white text-[#141413] hover:border-[#141413]'
+                            : feedback === 'need_size'
+                              ? 'border-[#991B1B]/60 bg-white text-[#141413] hover:border-[#141413]'
+                              : 'border-[#E7E5E0] bg-white text-[#141413] hover:border-[#141413]'
                       }`}
                     >
                       {size}
@@ -177,7 +187,15 @@ export function ProductDetailModal({ product, onClose, onOpenCart }: ProductDeta
 
               {/* Live Variant Stock Indicator */}
               <div className="mt-2.5 text-xs">
-                {stock === 0 ? (
+                {!selectedSize ? (
+                  totalProductStock === 0 ? (
+                    <span className="font-medium text-[#991B1B]">{t.catalog.outOfStock}</span>
+                  ) : feedback === 'need_size' ? (
+                    <span className="font-medium text-[#991B1B]">{t.product.selectSizePrompt}</span>
+                  ) : (
+                    <span className="text-[#6A665E]">{t.product.sizeHint}</span>
+                  )
+                ) : stock === 0 ? (
                   <span className="font-medium text-[#991B1B]">{t.product.soldOutVariant}</span>
                 ) : stock <= 3 ? (
                   <span className="font-medium text-[#9A3412] tabular-nums">
@@ -210,7 +228,7 @@ export function ProductDetailModal({ product, onClose, onOpenCart }: ProductDeta
             <button
               type="button"
               onClick={handleAdd}
-              disabled={stock === 0 || currentInBag >= stock}
+              disabled={totalProductStock === 0 || (selectedSize !== '' && (stock === 0 || currentInBag >= stock))}
               className="w-full rounded-full bg-[#141413] py-3.5 text-xs font-medium uppercase tracking-[0.16em] text-[#FAF9F6] hover:bg-[#2C2C2A] disabled:opacity-40 transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
             >
               {feedback === 'added' ? (
@@ -218,7 +236,7 @@ export function ProductDetailModal({ product, onClose, onOpenCart }: ProductDeta
                   <Check className="h-4 w-4" />
                   <span>{t.product.addedToBag}</span>
                 </>
-              ) : stock === 0 ? (
+              ) : totalProductStock === 0 || (selectedSize !== '' && stock === 0) ? (
                 <span>{t.product.soldOutVariant}</span>
               ) : (
                 <span>

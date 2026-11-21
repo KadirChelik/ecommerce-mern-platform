@@ -33,7 +33,8 @@ const COLOR_SWATCHES: Array<{ id: string; hex: string; tr: string; en: string }>
 export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: CatalogSectionProps) {
   const { lang, t, products, addToCart } = useStore();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [quickAddedId, setQuickAddedId] = useState<string | null>(null);
+  const [quickSizeProductId, setQuickSizeProductId] = useState<string | null>(null);
+  const [quickAdded, setQuickAdded] = useState<{ id: string; size: string } | null>(null);
 
   const filteredProducts = useMemo(() => filterAndSortProducts(products, filters), [products, filters]);
   const facets = useMemo(() => computeFacetCounts(products, filters), [products, filters]);
@@ -72,14 +73,33 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: Ca
     });
   };
 
-  const handleQuickAdd = (e: React.MouseEvent, product: Product) => {
+  const findVariantForSize = (product: Product, size: string) => {
+    if (filters.colors.length > 0) {
+      const colorMatched = product.variants.find(
+        (v) => v.size === size && filters.colors.includes(v.colorId) && v.stock > 0,
+      );
+      if (colorMatched) return colorMatched;
+    }
+    return product.variants.find((v) => v.size === size && v.stock > 0);
+  };
+
+  const handleOpenQuickSize = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
-    const available = product.variants.find((v) => v.stock > 0);
+    setQuickSizeProductId((prev) => (prev === product.id ? null : product.id));
+  };
+
+  const handleQuickSizeSelect = (e: React.MouseEvent, product: Product, size: string) => {
+    e.stopPropagation();
+    const available = findVariantForSize(product, size);
     if (!available) return;
     const res = addToCart(product, available.sku, 1);
     if (res.added) {
-      setQuickAddedId(product.id);
-      setTimeout(() => setQuickAddedId((prev) => (prev === product.id ? null : prev)), 1300);
+      setQuickSizeProductId(null);
+      setQuickAdded({ id: product.id, size });
+      setTimeout(
+        () => setQuickAdded((prev) => (prev?.id === product.id ? null : prev)),
+        1500,
+      );
     }
   };
 
@@ -324,7 +344,8 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: Ca
             <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
               {filteredProducts.map((product) => {
                 const totalStock = getProductTotalStock(product);
-                const isAdded = quickAddedId === product.id;
+                const isAdded = quickAdded?.id === product.id;
+                const isSelectingSize = quickSizeProductId === product.id;
 
                 return (
                   <article
@@ -359,35 +380,88 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: Ca
                         ) : null}
                       </div>
 
-                      {/* Hover Quick Actions */}
-                      <div className="absolute inset-x-3 bottom-3 flex items-center gap-2 opacity-0 translate-y-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                        <button
-                          type="button"
-                          onClick={(e) => handleQuickAdd(e, product)}
-                          disabled={totalStock === 0}
-                          className="flex-1 rounded-full bg-[#141413]/95 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#FAF9F6] hover:bg-[#141413] disabled:opacity-40 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
+                      {/* Hover Quick Actions or Inline Size Selector */}
+                      {isSelectingSize ? (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute inset-x-3 bottom-3 rounded-xl border border-[#E7E5E0] bg-[#FAF9F6]/95 p-2.5 backdrop-blur-xs shadow-sm"
                         >
-                          {isAdded ? (
-                            <>
-                              <Check className="h-3.5 w-3.5" />
-                              <span>{t.product.addedToBag}</span>
-                            </>
-                          ) : (
-                            <span>+ {t.product.addToBag}</span>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectProduct(product);
-                          }}
-                          className="rounded-full bg-white/95 p-2 text-[#141413] border border-[#E7E5E0] hover:bg-white cursor-pointer"
-                          aria-label={t.catalog.quickView}
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#57534C]">
+                              {t.product.selectSizePrompt}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuickSizeProductId(null);
+                              }}
+                              aria-label={t.product.close}
+                              className="rounded-full p-0.5 text-[#6A665E] hover:bg-[#EAE6DC] hover:text-[#141413] cursor-pointer"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {product.sizes.map((size) => {
+                              const variant = findVariantForSize(product, size);
+                              const hasStock = Boolean(variant);
+                              return (
+                                <button
+                                  key={size}
+                                  type="button"
+                                  disabled={!hasStock}
+                                  onClick={(e) => handleQuickSizeSelect(e, product, size)}
+                                  className={`min-w-[34px] flex-1 rounded-md border py-1.5 text-[11px] font-medium transition-colors ${
+                                    hasStock
+                                      ? 'border-[#E7E5E0] bg-white text-[#141413] hover:border-[#141413] hover:bg-[#141413] hover:text-[#FAF9F6] cursor-pointer'
+                                      : 'border-[#E7E5E0] bg-[#F2EFE9] text-[#A29D94] line-through cursor-not-allowed'
+                                  }`}
+                                >
+                                  {size}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className={`absolute inset-x-3 bottom-3 flex items-center gap-2 transition-all duration-200 ${
+                            isAdded
+                              ? 'opacity-100 translate-y-0'
+                              : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
+                          }`}
                         >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenQuickSize(e, product)}
+                            disabled={totalStock === 0}
+                            className="flex-1 rounded-full bg-[#141413]/95 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[#FAF9F6] hover:bg-[#141413] disabled:opacity-40 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
+                          >
+                            {isAdded ? (
+                              <>
+                                <Check className="h-3.5 w-3.5" />
+                                <span>
+                                  {t.product.addedToBag} ({quickAdded?.size})
+                                </span>
+                              </>
+                            ) : (
+                              <span>+ {t.product.addToBag}</span>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectProduct(product);
+                            }}
+                            className="rounded-full bg-white/95 p-2 text-[#141413] border border-[#E7E5E0] hover:bg-white cursor-pointer"
+                            aria-label={t.catalog.quickView}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Metadata */}

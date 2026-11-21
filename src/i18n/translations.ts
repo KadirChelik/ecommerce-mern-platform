@@ -51,6 +51,8 @@ export const TRANSLATIONS: Record<
     product: {
       selectColor: string;
       selectSize: string;
+      selectSizePrompt: string;
+      sizeHint: string;
       addToBag: string;
       addedToBag: string;
       soldOutVariant: string;
@@ -231,6 +233,8 @@ export const TRANSLATIONS: Record<
     product: {
       selectColor: 'Renk Seçimi',
       selectSize: 'Beden Seçimi',
+      selectSizePrompt: 'Lütfen beden seçiniz',
+      sizeHint: 'Stok durumunu görmek için beden seçin',
       addToBag: 'Sepete Ekle',
       addedToBag: 'Sepete Eklendi',
       soldOutVariant: 'Bu Varyant Tükendi',
@@ -415,6 +419,8 @@ export const TRANSLATIONS: Record<
     product: {
       selectColor: 'Color',
       selectSize: 'Size',
+      selectSizePrompt: 'Please select a size',
+      sizeHint: 'Select a size to check availability',
       addToBag: 'Add to Bag',
       addedToBag: 'Added to Bag',
       soldOutVariant: 'Variant Sold Out',
