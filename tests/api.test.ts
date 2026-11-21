@@ -132,4 +132,76 @@ describe('HANN Studio Express API & JWT RBAC', () => {
     expect(statusRes.body.order.status).toBe('shipped');
     expect(statusRes.body.order.timeline).toHaveLength(2);
   });
+
+  it('protects customer order PII on /api/orders and /api/orders/:id and aggregates duplicate SKU stock checks', async () => {
+    // 1. Unauthenticated bulk /api/orders must be rejected
+    const unauthList = await request(app).get('/api/orders');
+    expect(unauthList.status).toBe(401);
+
+    // 2. Unauthenticated single lookup requires both orderNumber and matching email
+    const guestWrongEmail = await request(app).get('/api/orders?orderNumber=HN-2026-1042&email=wrong@example.com');
+    expect(guestWrongEmail.status).toBe(200);
+    expect(guestWrongEmail.body.orders).toHaveLength(0);
+
+    const guestMatch = await request(app).get('/api/orders?orderNumber=HN-2026-1042&email=emre.kaya@example.com');
+    expect(guestMatch.status).toBe(200);
+    expect(guestMatch.body.orders).toHaveLength(1);
+    expect(guestMatch.body.orders[0].id).toBe('ord-1042');
+
+    // 3. Authenticated customer only sees their own orders (selin.demir@example.com -> ord-1041)
+    const customerLogin = await request(app).post('/api/auth/demo-switch').send({ role: 'customer' });
+    const customerToken = customerLogin.body.token as string;
+    const customerOrders = await request(app)
+      .get('/api/orders')
+      .set('Authorization', `Bearer ${customerToken}`);
+    expect(customerOrders.status).toBe(200);
+    expect(customerOrders.body.orders).toHaveLength(1);
+    expect(customerOrders.body.orders[0].customerEmail).toBe('selin.demir@example.com');
+
+    // Customer cannot view another customer's order by ID
+    const crossOrder = await request(app)
+      .get('/api/orders/ord-1042')
+      .set('Authorization', `Bearer ${customerToken}`);
+    expect(crossOrder.status).toBe(403);
+
+    // Unauthenticated /api/orders/:id without email is 401
+    const unauthById = await request(app).get('/api/orders/ord-1041');
+    expect(unauthById.status).toBe(401);
+
+    // Owner and Admin can view /api/orders/:id
+    const ownerById = await request(app)
+      .get('/api/orders/ord-1041')
+      .set('Authorization', `Bearer ${customerToken}`);
+    expect(ownerById.status).toBe(200);
+
+    const adminLogin = await request(app).post('/api/auth/demo-switch').send({ role: 'admin' });
+    const adminOrders = await request(app)
+      .get('/api/orders')
+      .set('Authorization', `Bearer ${adminLogin.body.token}`);
+    expect(adminOrders.status).toBe(200);
+    expect(adminOrders.body.orders.length).toBeGreaterThanOrEqual(3);
+
+    // 4. Duplicate line items for the same SKU (stock=2, 2 + 1 = 3) must fail atomically with 409
+    const dupSkuOversell = await request(app)
+      .post('/api/orders')
+      .send({
+        shipping: {
+          fullName: 'Selin Demir',
+          email: 'selin.demir@example.com',
+          phone: '+90 532 111 2233',
+          city: 'İstanbul',
+          district: 'Beşiktaş',
+          addressLine: 'Abbasağa Mah. No: 5',
+          postalCode: '34353',
+        },
+        deliveryMethod: 'standard',
+        paymentLast4: '4821',
+        items: [
+          { productId: 'prod-wool-coat', sku: 'HN-WC01-CHA-XS', quantity: 2 },
+          { productId: 'prod-wool-coat', sku: 'HN-WC01-CHA-XS', quantity: 1 },
+        ],
+      });
+    expect(dupSkuOversell.status).toBe(409);
+    expect(dupSkuOversell.body.code).toBe('INSUFFICIENT_STOCK');
+  });
 });

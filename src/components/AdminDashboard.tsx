@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -58,8 +58,15 @@ export function AdminDashboard() {
     updateProduct,
     deleteProduct,
     updateOrderStatus,
+    refreshAdminOverview,
     resetDemoState,
   } = useStore();
+
+  useEffect(() => {
+    if (user.role === 'admin') {
+      void refreshAdminOverview();
+    }
+  }, [user.role, refreshAdminOverview]);
 
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);

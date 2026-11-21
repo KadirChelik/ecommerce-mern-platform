@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import type { NextFunction, Request, Response } from 'express';
 import type { AuthUser, UserRole } from '../shared/types.js';
@@ -17,8 +18,34 @@ const DEMO_USERS: Record<UserRole, AuthUser> = {
   },
 };
 
+let cachedEphemeralSecret: string | null = null;
+
+export function isDemoAuthEnabled(): boolean {
+  const explicit = process.env.ALLOW_DEMO_AUTH?.trim().toLowerCase();
+  if (explicit === 'false') return false;
+  if (explicit === 'true') return true;
+  if (process.env.NODE_ENV === 'production' && Boolean(process.env.MONGODB_URI?.trim())) {
+    return false;
+  }
+  return true;
+}
+
 function getJwtSecret(): string {
-  return process.env.JWT_SECRET?.trim() || 'hann-studio-dev-ephemeral-secret';
+  const configured = process.env.JWT_SECRET?.trim();
+  if (configured) return configured;
+
+  if (process.env.NODE_ENV === 'production' && Boolean(process.env.MONGODB_URI?.trim())) {
+    throw new Error('JWT_SECRET environment variable is required in production with MongoDB');
+  }
+
+  if (!cachedEphemeralSecret) {
+    // Deterministic per demo deployment when Vercel splits cold starts, random fallback otherwise
+    const deploymentSeed = process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_URL;
+    cachedEphemeralSecret = deploymentSeed
+      ? crypto.createHash('sha256').update(`hann-demo:${deploymentSeed}`).digest('hex')
+      : crypto.randomBytes(32).toString('hex');
+  }
+  return cachedEphemeralSecret;
 }
 
 export function getDemoUser(role: UserRole): AuthUser {

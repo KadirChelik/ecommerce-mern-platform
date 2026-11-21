@@ -151,6 +151,7 @@ export interface AdminOverviewStats {
   averageOrderValueTry: number;
   lowStockSkuCount: number;
   outOfStockSkuCount: number;
+  includesHistoricalBaseline?: boolean;
   revenueByMonth: Array<{ month: string; revenueTry: number; orders: number }>;
   revenueByCategory: Array<{ category: CategoryId; revenueTry: number; units: number }>;
 }

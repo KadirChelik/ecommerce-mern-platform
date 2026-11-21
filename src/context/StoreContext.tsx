@@ -176,7 +176,44 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(orders));
   }, [orders]);
 
-  const switchRole = useCallback(async (nextRole: UserRole) => {
+  const fetchOrdersForToken = useCallback(async (authToken: string | null): Promise<Order[] | null> => {
+    if (!authToken) return null;
+    try {
+      const res = await fetch('/api/orders', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { orders: Order[] };
+        return Array.isArray(data.orders) ? data.orders : null;
+      }
+    } catch {
+      // network offline
+    }
+    return null;
+  }, []);
+
+  const fetchOverviewForToken = useCallback(async (authToken: string | null, nextRole: UserRole) => {
+    if (!authToken || nextRole !== 'admin') return;
+    try {
+      const res = await fetch('/api/admin/overview', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          overview: AdminOverviewStats;
+          storageMode: 'demo' | 'mongodb';
+          s3Configured: boolean;
+        };
+        setStorageMode(data.storageMode);
+        setS3Configured(data.s3Configured);
+        setOverview(data.overview);
+      }
+    } catch {
+      // keep existing/fallback overview
+    }
+  }, []);
+
+  const authenticateRole = useCallback(async (nextRole: UserRole): Promise<string | null> => {
     setRole(nextRole);
     localStorage.setItem(STORAGE_KEYS.role, nextRole);
     try {
@@ -189,7 +226,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const data = (await res.json()) as { user: AuthUser; token: string };
         setUser(data.user);
         setToken(data.token);
-        return;
+        return data.token;
       }
     } catch {
       // Fallback to local user object if offline
@@ -199,36 +236,55 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ? { id: 'usr-admin-demo', name: 'Kadir Çelik (Studio Admin)', email: 'admin@hannstudio.com', role: 'admin' }
         : { id: 'usr-customer-demo', name: 'Selin Demir', email: 'selin.demir@example.com', role: 'customer' },
     );
+    return null;
   }, []);
+
+  const switchRole = useCallback(
+    async (nextRole: UserRole) => {
+      const nextToken = await authenticateRole(nextRole);
+      if (nextToken) {
+        const serverOrders = await fetchOrdersForToken(nextToken);
+        if (serverOrders) {
+          setOrders(serverOrders);
+        }
+        await fetchOverviewForToken(nextToken, nextRole);
+      }
+    },
+    [authenticateRole, fetchOrdersForToken, fetchOverviewForToken],
+  );
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        await switchRole(role);
-        const [healthRes, prodRes, ordRes] = await Promise.all([
-          fetch('/api/health'),
-          fetch('/api/products'),
-          fetch('/api/orders'),
+        const initialToken = await authenticateRole(role);
+        if (!active) return;
+
+        const [healthRes, prodRes, serverOrders] = await Promise.all([
+          fetch('/api/health').catch(() => null),
+          fetch('/api/products').catch(() => null),
+          fetchOrdersForToken(initialToken),
         ]);
         if (!active) return;
-        if (healthRes.ok) {
+
+        if (healthRes?.ok) {
           const h = (await healthRes.json()) as { storageMode: 'demo' | 'mongodb'; s3Configured: boolean };
           setStorageMode(h.storageMode);
           setS3Configured(h.s3Configured);
         }
-        const savedProducts = localStorage.getItem(STORAGE_KEYS.products);
-        if (prodRes.ok && !savedProducts) {
+        // Server is primary source of truth when reachable; localStorage remains offline fallback
+        if (prodRes?.ok) {
           const p = (await prodRes.json()) as { products: Product[] };
-          if (p.products?.length) setProducts(p.products);
+          if (Array.isArray(p.products)) setProducts(p.products);
         }
-        const savedOrders = localStorage.getItem(STORAGE_KEYS.orders);
-        if (ordRes.ok && !savedOrders) {
-          const o = (await ordRes.json()) as { orders: Order[] };
-          if (o.orders?.length) setOrders(o.orders);
+        if (serverOrders) {
+          setOrders(serverOrders);
+        }
+        if (initialToken && role === 'admin') {
+          await fetchOverviewForToken(initialToken, role);
         }
       } catch {
-        // Seeded state already available synchronously
+        // Seeded / cached state already available synchronously for offline fallback
       } finally {
         if (active) setLoading(false);
       }
@@ -250,21 +306,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             storageMode: 'demo' | 'mongodb';
             s3Configured: boolean;
           };
-          // Merge live client-persisted counts cleanly
           setStorageMode(data.storageMode);
           setS3Configured(data.s3Configured);
-          setOverview(buildLocalOverview(products, orders));
+          setOverview(data.overview);
           return;
         }
       } catch {
-        // fallback below
+        // fallback below when offline
       }
     }
     setOverview(buildLocalOverview(products, orders));
   }, [orders, products, token, user.role]);
 
   useEffect(() => {
-    setOverview(buildLocalOverview(products, orders));
+    setOverview((prev) => prev ?? buildLocalOverview(products, orders));
   }, [products, orders]);
 
   const addToCart = useCallback(
@@ -361,9 +416,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = (await res.json()) as { order: Order };
           createdOrder = data.order;
+        } else if (res.status >= 400 && res.status < 500) {
+          const errBody = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(errBody.error || 'Order validation or stock error');
         }
-      } catch {
-        // Continue with resilient client creation if API memory state differed
+      } catch (err) {
+        // Re-throw 4xx business/stock errors; only fall back to local simulation on network failures
+        if (err instanceof Error && !(err instanceof TypeError)) {
+          throw err;
+        }
       }
 
       if (!createdOrder) {
@@ -428,9 +489,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       setOrders((prev) => [createdOrder!, ...prev]);
       clearCart();
+      if (token && user.role === 'admin') {
+        void fetchOverviewForToken(token, user.role);
+      }
       return createdOrder;
     },
-    [cart, clearCart, orders.length, products],
+    [cart, clearCart, fetchOverviewForToken, orders.length, products, token, user.role],
   );
 
   const ensureAdminToken = useCallback(async (): Promise<string | null> => {
@@ -479,9 +543,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         };
       }
       setProducts((prev) => [created!, ...prev]);
+      if (authToken) void fetchOverviewForToken(authToken, 'admin');
       return created;
     },
-    [ensureAdminToken],
+    [ensureAdminToken, fetchOverviewForToken],
   );
 
   const updateProduct = useCallback(
@@ -515,9 +580,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }),
       );
       if (!updated) throw new Error('Product not found');
+      if (authToken) void fetchOverviewForToken(authToken, 'admin');
       return updated;
     },
-    [ensureAdminToken],
+    [ensureAdminToken, fetchOverviewForToken],
   );
 
   const deleteProduct = useCallback(
@@ -534,8 +600,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
       }
       setProducts((prev) => prev.filter((p) => p.id !== id));
+      if (authToken) void fetchOverviewForToken(authToken, 'admin');
     },
-    [ensureAdminToken],
+    [ensureAdminToken, fetchOverviewForToken],
   );
 
   const updateOrderStatus = useCallback(
@@ -584,9 +651,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }),
       );
       if (!updatedOrder) throw new Error('Order not found');
+      if (authToken) void fetchOverviewForToken(authToken, 'admin');
       return updatedOrder;
     },
-    [ensureAdminToken],
+    [ensureAdminToken, fetchOverviewForToken],
   );
 
   const resetDemoState = useCallback(() => {

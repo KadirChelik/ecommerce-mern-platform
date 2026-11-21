@@ -1,19 +1,36 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { parseFiltersFromSearch, serializeFiltersToSearch } from '../shared/commerce.js';
 import type { CatalogFilterState, CategoryId, Product } from '../shared/types.js';
-import { AdminDashboard } from './components/AdminDashboard.js';
 import { CartDrawer } from './components/CartDrawer.js';
 import { CatalogSection } from './components/CatalogSection.js';
-import { CheckoutModal } from './components/CheckoutModal.js';
 import { CommandPalette } from './components/CommandPalette.js';
 import { HeroSection } from './components/HeroSection.js';
 import { Navbar, type ActiveView } from './components/Navbar.js';
-import { OrdersView } from './components/OrdersView.js';
 import { ProductDetailModal } from './components/ProductDetailModal.js';
 import { StoreProvider, useStore } from './context/StoreContext.js';
 
+const AdminDashboard = lazy(() =>
+  import('./components/AdminDashboard.js').then((m) => ({ default: m.AdminDashboard })),
+);
+const OrdersView = lazy(() =>
+  import('./components/OrdersView.js').then((m) => ({ default: m.OrdersView })),
+);
+const CheckoutModal = lazy(() =>
+  import('./components/CheckoutModal.js').then((m) => ({ default: m.CheckoutModal })),
+);
+
+function buildSearchWithProduct(filters: CatalogFilterState, productSlug?: string | null): string {
+  const base = serializeFiltersToSearch(filters);
+  const params = new URLSearchParams(base.startsWith('?') ? base.slice(1) : base);
+  if (productSlug) {
+    params.set('product', productSlug);
+  }
+  const str = params.toString();
+  return str ? `?${str}` : '';
+}
+
 function AppShell() {
-  const { t } = useStore();
+  const { lang, products, t } = useStore();
   const [activeView, setActiveView] = useState<ActiveView>('storefront');
   const [filters, setFilters] = useState<CatalogFilterState>(() =>
     parseFiltersFromSearch(window.location.search),
@@ -24,17 +41,38 @@ function AppShell() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [trackedOrderNumber, setTrackedOrderNumber] = useState<string | undefined>(undefined);
 
-  // Sync URL query params bidirectionally
-  const updateFilters = (next: CatalogFilterState) => {
-    setFilters(next);
-    const search = serializeFiltersToSearch(next);
+  // Sync URL query params bidirectionally (filters + ?product=<slug>)
+  const syncUrl = (nextFilters: CatalogFilterState, nextProductSlug?: string | null) => {
+    const search = buildSearchWithProduct(nextFilters, nextProductSlug);
     const nextUrl = `${window.location.pathname}${search}${window.location.hash}`;
     window.history.replaceState(null, '', nextUrl);
   };
 
+  const updateFilters = (next: CatalogFilterState) => {
+    setFilters(next);
+    const activeSlug =
+      selectedProduct?.slug ?? new URLSearchParams(window.location.search).get('product');
+    syncUrl(next, activeSlug);
+  };
+
+  const handleSelectProduct = (product: Product | null) => {
+    setSelectedProduct(product);
+    syncUrl(filters, product?.slug ?? null);
+  };
+
+  useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get('product');
+    if (slug && products.length > 0) {
+      const matched = products.find((p) => p.slug === slug || p.id === slug) ?? null;
+      if (matched) setSelectedProduct(matched);
+    }
+  }, [products]);
+
   useEffect(() => {
     const onPopState = () => {
       setFilters(parseFiltersFromSearch(window.location.search));
+      const slug = new URLSearchParams(window.location.search).get('product');
+      setSelectedProduct(slug ? products.find((p) => p.slug === slug || p.id === slug) ?? null : null);
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -48,11 +86,17 @@ function AppShell() {
       window.removeEventListener('popstate', onPopState);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, []);
+  }, [products]);
 
   const handleSelectCategory = (category?: CategoryId) => {
     updateFilters({ ...filters, category });
   };
+
+  const suspenseFallback = (
+    <div className="mx-auto max-w-[1380px] px-4 py-16 text-center text-xs uppercase tracking-[0.16em] text-[#6A665E]">
+      {lang === 'tr' ? 'Yükleniyor...' : 'Loading...'}
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#141413]">
@@ -80,13 +124,21 @@ function AppShell() {
             <CatalogSection
               filters={filters}
               onChangeFilters={updateFilters}
-              onSelectProduct={setSelectedProduct}
+              onSelectProduct={handleSelectProduct}
             />
           </>
         )}
 
-        {activeView === 'orders' && <OrdersView initialOrderNumber={trackedOrderNumber} />}
-        {activeView === 'admin' && <AdminDashboard />}
+        {activeView === 'orders' && (
+          <Suspense fallback={suspenseFallback}>
+            <OrdersView initialOrderNumber={trackedOrderNumber} />
+          </Suspense>
+        )}
+        {activeView === 'admin' && (
+          <Suspense fallback={suspenseFallback}>
+            <AdminDashboard />
+          </Suspense>
+        )}
       </main>
 
       <footer className="border-t border-[#E7E5E0] bg-white py-8">
@@ -103,7 +155,7 @@ function AppShell() {
 
       <ProductDetailModal
         product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
+        onClose={() => handleSelectProduct(null)}
         onOpenCart={() => setCartOpen(true)}
       />
 
@@ -116,19 +168,23 @@ function AppShell() {
         }}
       />
 
-      <CheckoutModal
-        open={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        onOrderCreated={(orderNumber) => {
-          setTrackedOrderNumber(orderNumber);
-          setActiveView('orders');
-        }}
-      />
+      {checkoutOpen && (
+        <Suspense fallback={null}>
+          <CheckoutModal
+            open={checkoutOpen}
+            onClose={() => setCheckoutOpen(false)}
+            onOrderCreated={(orderNumber) => {
+              setTrackedOrderNumber(orderNumber);
+              setActiveView('orders');
+            }}
+          />
+        </Suspense>
+      )}
 
       <CommandPalette
         open={commandOpen}
         onClose={() => setCommandOpen(false)}
-        onSelectProduct={setSelectedProduct}
+        onSelectProduct={handleSelectProduct}
         onNavigateView={setActiveView}
         onOpenCart={() => setCartOpen(true)}
       />

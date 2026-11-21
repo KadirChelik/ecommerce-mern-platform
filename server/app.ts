@@ -11,6 +11,7 @@ import {
 import {
   attachOptionalAuth,
   getDemoUser,
+  isDemoAuthEnabled,
   requireAdmin,
   requireAuth,
   signAuthToken,
@@ -36,6 +37,10 @@ export function createApp() {
   });
 
   app.post('/api/auth/demo-switch', (req: Request, res: Response) => {
+    if (!isDemoAuthEnabled()) {
+      res.status(403).json({ error: 'Demo auth switching is disabled in production' });
+      return;
+    }
     const parsed = demoSwitchSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'Invalid role', issues: parsed.error.issues });
@@ -130,8 +135,8 @@ export function createApp() {
   app.get('/api/orders', attachOptionalAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const store = getStore();
-      const email = typeof req.query.email === 'string' ? req.query.email : undefined;
-      const orderNumber = typeof req.query.orderNumber === 'string' ? req.query.orderNumber : undefined;
+      const email = typeof req.query.email === 'string' ? req.query.email.trim() : undefined;
+      const orderNumber = typeof req.query.orderNumber === 'string' ? req.query.orderNumber.trim() : undefined;
 
       if (req.authUser?.role === 'admin') {
         const orders = await store.listOrders({ email, orderNumber });
@@ -139,34 +144,52 @@ export function createApp() {
         return;
       }
 
-      if (orderNumber) {
-        const orders = await store.listOrders({ orderNumber });
+      if (req.authUser?.role === 'customer') {
+        const orders = await store.listOrders({
+          email: req.authUser.email,
+          orderNumber: orderNumber || undefined,
+        });
         res.json({ orders });
         return;
       }
 
-      if (email) {
-        const orders = await store.listOrders({ email });
+      if (orderNumber && email) {
+        const orders = await store.listOrders({ orderNumber, email });
         res.json({ orders });
         return;
       }
 
-      // Return seeded customer showcase orders for seamless demo experience
-      const orders = await store.listOrders();
-      res.json({ orders });
+      res.status(401).json({ error: 'Authentication or orderNumber + email required' });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to load orders' });
     }
   });
 
-  app.get('/api/orders/:id', async (req: Request, res: Response) => {
+  app.get('/api/orders/:id', attachOptionalAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const queryEmail = typeof req.query.email === 'string' ? req.query.email.trim().toLowerCase() : '';
+      if (!req.authUser && !queryEmail) {
+        res.status(401).json({ error: 'Authentication or email parameter required' });
+        return;
+      }
+
       const store = getStore();
       const order = await store.getOrder(String(req.params.id));
       if (!order) {
         res.status(404).json({ error: 'Order not found' });
         return;
       }
+
+      const ownerEmail = order.customerEmail.trim().toLowerCase();
+      const isAdmin = req.authUser?.role === 'admin';
+      const isOwnerAuth = req.authUser?.email.trim().toLowerCase() === ownerEmail;
+      const isEmailMatch = queryEmail.length > 0 && queryEmail === ownerEmail;
+
+      if (!isAdmin && !isOwnerAuth && !isEmailMatch) {
+        res.status(req.authUser ? 403 : 401).json({ error: 'Forbidden' });
+        return;
+      }
+
       res.json({ order });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to load order' });

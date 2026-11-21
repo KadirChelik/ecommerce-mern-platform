@@ -114,9 +114,30 @@ function computeOverview(products: Product[], orders: Order[]): AdminOverviewSta
     averageOrderValueTry,
     lowStockSkuCount,
     outOfStockSkuCount,
+    includesHistoricalBaseline: true,
     revenueByMonth,
     revenueByCategory,
   };
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function aggregateOrderQuantities(
+  items: CreateOrderInput['items'],
+): Array<{ productId: string; sku: string; quantity: number }> {
+  const byKey = new Map<string, { productId: string; sku: string; quantity: number }>();
+  for (const item of items) {
+    const key = `${item.productId}::${item.sku}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.quantity += item.quantity;
+    } else {
+      byKey.set(key, { productId: item.productId, sku: item.sku, quantity: item.quantity });
+    }
+  }
+  return Array.from(byKey.values());
 }
 
 export class DemoStore implements CommerceStore {
@@ -203,25 +224,30 @@ export class DemoStore implements CommerceStore {
   async createOrder(input: CreateOrderInput): Promise<Order> {
     const resolvedItems: OrderItemRecord[] = [];
     const cartForTotals: CartItem[] = [];
+    const aggregated = aggregateOrderQuantities(input.items);
 
-    // First validate all quantities against current variant stock
-    for (const reqItem of input.items) {
-      const product = this.products.find((p) => p.id === reqItem.productId);
+    // First validate all aggregated quantities against current variant stock
+    for (const aggItem of aggregated) {
+      const product = this.products.find((p) => p.id === aggItem.productId);
       if (!product) {
-        throw new StoreError(404, 'PRODUCT_NOT_FOUND', `Product ${reqItem.productId} not found`);
+        throw new StoreError(404, 'PRODUCT_NOT_FOUND', `Product ${aggItem.productId} not found`);
       }
-      const variant = product.variants.find((v) => v.sku === reqItem.sku);
+      const variant = product.variants.find((v) => v.sku === aggItem.sku);
       if (!variant) {
-        throw new StoreError(400, 'VARIANT_NOT_FOUND', `Variant ${reqItem.sku} not found`);
+        throw new StoreError(400, 'VARIANT_NOT_FOUND', `Variant ${aggItem.sku} not found`);
       }
-      if (variant.stock < reqItem.quantity) {
+      if (variant.stock < aggItem.quantity) {
         throw new StoreError(
           409,
           'INSUFFICIENT_STOCK',
           `Only ${variant.stock} units left for ${variant.sku}`,
         );
       }
+    }
 
+    for (const reqItem of input.items) {
+      const product = this.products.find((p) => p.id === reqItem.productId)!;
+      const variant = product.variants.find((v) => v.sku === reqItem.sku)!;
       const colorObj = product.colors.find((c) => c.id === variant.colorId);
       resolvedItems.push({
         productId: product.id,
@@ -246,11 +272,11 @@ export class DemoStore implements CommerceStore {
       });
     }
 
-    // Decrement stock
-    for (const reqItem of input.items) {
-      const product = this.products.find((p) => p.id === reqItem.productId)!;
-      const variant = product.variants.find((v) => v.sku === reqItem.sku)!;
-      variant.stock = Math.max(0, variant.stock - reqItem.quantity);
+    // Decrement stock using aggregated quantities
+    for (const aggItem of aggregated) {
+      const product = this.products.find((p) => p.id === aggItem.productId)!;
+      const variant = product.variants.find((v) => v.sku === aggItem.sku)!;
+      variant.stock = Math.max(0, variant.stock - aggItem.quantity);
     }
 
     const totals = calculateCartTotals(cartForTotals, input.couponCode, input.deliveryMethod);
@@ -390,8 +416,12 @@ class MongoStore implements CommerceStore {
   async listOrders(filter?: { email?: string; orderNumber?: string }): Promise<Order[]> {
     const db = await this.getDb();
     const query: Record<string, unknown> = {};
-    if (filter?.email) query.customerEmail = filter.email.trim();
-    if (filter?.orderNumber) query.orderNumber = filter.orderNumber.trim();
+    if (filter?.email) {
+      query.customerEmail = { $regex: `^${escapeRegex(filter.email.trim())}$`, $options: 'i' };
+    }
+    if (filter?.orderNumber) {
+      query.orderNumber = { $regex: `^${escapeRegex(filter.orderNumber.trim())}$`, $options: 'i' };
+    }
     return db
       .collection<Order>('orders')
       .find(query, { projection: { _id: 0 } })
@@ -401,9 +431,18 @@ class MongoStore implements CommerceStore {
 
   async getOrder(idOrNumber: string): Promise<Order | null> {
     const db = await this.getDb();
+    const escaped = escapeRegex(idOrNumber.trim());
     return db
       .collection<Order>('orders')
-      .findOne({ $or: [{ id: idOrNumber }, { orderNumber: idOrNumber }] }, { projection: { _id: 0 } });
+      .findOne(
+        {
+          $or: [
+            { id: { $regex: `^${escaped}$`, $options: 'i' } },
+            { orderNumber: { $regex: `^${escaped}$`, $options: 'i' } },
+          ],
+        },
+        { projection: { _id: 0 } },
+      );
   }
 
   async createOrder(input: CreateOrderInput): Promise<Order> {
@@ -411,20 +450,31 @@ class MongoStore implements CommerceStore {
     const productsCol = db.collection<Product>('products');
     const resolvedItems: OrderItemRecord[] = [];
     const cartForTotals: CartItem[] = [];
+    const aggregated = aggregateOrderQuantities(input.items);
 
-    for (const reqItem of input.items) {
-      const product = await productsCol.findOne({ id: reqItem.productId }, { projection: { _id: 0 } });
+    const productCache = new Map<string, Product>();
+    for (const aggItem of aggregated) {
+      let product = productCache.get(aggItem.productId);
       if (!product) {
-        throw new StoreError(404, 'PRODUCT_NOT_FOUND', `Product ${reqItem.productId} not found`);
+        const fetched = await productsCol.findOne({ id: aggItem.productId }, { projection: { _id: 0 } });
+        if (!fetched) {
+          throw new StoreError(404, 'PRODUCT_NOT_FOUND', `Product ${aggItem.productId} not found`);
+        }
+        product = fetched;
+        productCache.set(aggItem.productId, product);
       }
-      const variant = product.variants.find((v) => v.sku === reqItem.sku);
+      const variant = product.variants.find((v) => v.sku === aggItem.sku);
       if (!variant) {
-        throw new StoreError(400, 'VARIANT_NOT_FOUND', `Variant ${reqItem.sku} not found`);
+        throw new StoreError(400, 'VARIANT_NOT_FOUND', `Variant ${aggItem.sku} not found`);
       }
-      if (variant.stock < reqItem.quantity) {
+      if (variant.stock < aggItem.quantity) {
         throw new StoreError(409, 'INSUFFICIENT_STOCK', `Only ${variant.stock} units left for ${variant.sku}`);
       }
+    }
 
+    for (const reqItem of input.items) {
+      const product = productCache.get(reqItem.productId)!;
+      const variant = product.variants.find((v) => v.sku === reqItem.sku)!;
       const colorObj = product.colors.find((c) => c.id === variant.colorId);
       resolvedItems.push({
         productId: product.id,
@@ -449,11 +499,30 @@ class MongoStore implements CommerceStore {
       });
     }
 
-    for (const reqItem of input.items) {
-      await productsCol.updateOne(
-        { id: reqItem.productId, 'variants.sku': reqItem.sku },
-        { $inc: { 'variants.$.stock': -reqItem.quantity } },
+    // Conditionally decrement each aggregated SKU atomically, rolling back on contention
+    const decremented: Array<{ productId: string; sku: string; quantity: number }> = [];
+    const rollbackStock = async () => {
+      for (const item of decremented) {
+        await productsCol.updateOne(
+          { id: item.productId, 'variants.sku': item.sku },
+          { $inc: { 'variants.$.stock': item.quantity } },
+        );
+      }
+    };
+
+    for (const aggItem of aggregated) {
+      const res = await productsCol.updateOne(
+        {
+          id: aggItem.productId,
+          variants: { $elemMatch: { sku: aggItem.sku, stock: { $gte: aggItem.quantity } } },
+        },
+        { $inc: { 'variants.$.stock': -aggItem.quantity } },
       );
+      if (res.modifiedCount === 0) {
+        await rollbackStock();
+        throw new StoreError(409, 'INSUFFICIENT_STOCK', `Insufficient stock for ${aggItem.sku}`);
+      }
+      decremented.push(aggItem);
     }
 
     const existingCount = await db.collection<Order>('orders').countDocuments();
@@ -478,7 +547,12 @@ class MongoStore implements CommerceStore {
       updatedAt: now,
     };
 
-    await db.collection<Order>('orders').insertOne(structuredClone(order));
+    try {
+      await db.collection<Order>('orders').insertOne(structuredClone(order));
+    } catch (err) {
+      await rollbackStock();
+      throw err;
+    }
     return order;
   }
 
