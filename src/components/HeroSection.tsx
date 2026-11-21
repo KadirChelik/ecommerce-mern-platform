@@ -8,7 +8,7 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ onExploreCatalog, onSelectCategory }: HeroSectionProps) {
-  const { t, storageMode } = useStore();
+  const { t } = useStore();
 
   return (
     <section className="border-b border-[#E7E5E0] bg-[#FAF9F6]">
@@ -50,10 +50,7 @@ export function HeroSection({ onExploreCatalog, onSelectCategory }: HeroSectionP
             </div>
 
             <div className="mt-8 border-t border-[#DFDBD2] pt-4 text-[11px] text-[#6E6A62]">
-              <span className="font-medium text-[#141413]">
-                {storageMode === 'mongodb' ? 'MongoDB Atlas' : 'Instant DemoStore'}
-              </span>{' '}
-              · {t.hero.statLine}
+              {t.hero.statLine}
             </div>
           </div>
 

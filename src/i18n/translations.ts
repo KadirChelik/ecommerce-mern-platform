@@ -192,10 +192,10 @@ export const TRANSLATIONS: Record<
       tailoring: 'Terzilik & Triko',
     },
     hero: {
-      eyebrow: 'ATELIER AW26 KAPSÜLÜ',
-      title: 'Sade oranlar. Kalıcı dokular.',
+      eyebrow: 'HANN ATELIER · İSTANBUL',
+      title: 'Sonbahar / Kış 2026',
       subtitle:
-        'İtalyan bakire yünü, Avrupa keteni ve ham kupro ile tasarlanmış 10 parçalık modern gardırop seçkisi.',
+        'Yün dış giyim, keten ceketler ve merinos trikolardan oluşan 10 parçalık sezon seçkisi.',
       ctaPrimary: 'Koleksiyonu Keşfet',
       ctaSecondary: 'Dış Giyime Git',
       statLine: '3.000 TL üzeri ücretsiz kargo · Aynı gün stüdyo paketleme · 14 gün kolay iade',
@@ -376,10 +376,10 @@ export const TRANSLATIONS: Record<
       tailoring: 'Tailoring & Knitwear',
     },
     hero: {
-      eyebrow: 'ATELIER AW26 CAPSULE',
-      title: 'Refined proportions. Enduring textures.',
+      eyebrow: 'HANN ATELIER · ISTANBUL',
+      title: 'Autumn / Winter 2026',
       subtitle:
-        'A curated 10-piece architectural wardrobe crafted from Italian virgin wool, Belgian flax linen, and matte cupro.',
+        'A 10-piece seasonal edit of wool coats, linen tailoring, and fine-gauge merino knitwear.',
       ctaPrimary: 'Explore Collection',
       ctaSecondary: 'Shop Outerwear',
       statLine: 'Complimentary shipping over 3,000 TRY · Same-day studio packing · 14-day returns',
