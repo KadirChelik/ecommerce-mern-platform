@@ -47,15 +47,15 @@ export function Navbar({
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E7E5E0] bg-[#FAF9F6]/92 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         {/* Left: Brand + Primary Nav */}
-        <div className="flex items-center gap-5 2xl:gap-7 min-w-0">
+        <div className="flex items-center gap-4 2xl:gap-7 min-w-0">
           <button
             type="button"
             onClick={() => handleCategoryClick(undefined)}
             className="flex items-baseline gap-2.5 text-left cursor-pointer group shrink-0 whitespace-nowrap"
           >
-            <span className="font-editorial text-xl 2xl:text-2xl font-semibold tracking-[0.14em] text-[#141413] whitespace-nowrap">
+            <span className="font-editorial text-xl 2xl:text-2xl font-semibold tracking-[0.12em] 2xl:tracking-[0.14em] text-[#141413] whitespace-nowrap">
               {t.brand}
             </span>
             <span className="hidden 2xl:inline-block text-[10px] uppercase tracking-[0.22em] text-[#78746C]">
@@ -63,11 +63,11 @@ export function Navbar({
             </span>
           </button>
 
-          <nav className="hidden xl:flex items-center gap-4 2xl:gap-6 shrink-0" aria-label="Main navigation">
+          <nav className="hidden xl:flex items-center gap-3.5 2xl:gap-6 shrink-0" aria-label="Main navigation">
             <button
               type="button"
               onClick={() => handleCategoryClick(undefined)}
-              className={`whitespace-nowrap text-xs uppercase tracking-[0.12em] transition-colors cursor-pointer ${
+              className={`whitespace-nowrap text-[11px] 2xl:text-xs uppercase tracking-[0.09em] 2xl:tracking-[0.13em] transition-colors cursor-pointer ${
                 activeView === 'storefront' && !activeCategory
                   ? 'text-[#141413] font-semibold underline underline-offset-8 decoration-[#141413]'
                   : 'text-[#6A665E] hover:text-[#141413]'
@@ -80,7 +80,7 @@ export function Navbar({
                 key={cat}
                 type="button"
                 onClick={() => handleCategoryClick(cat)}
-                className={`whitespace-nowrap text-xs uppercase tracking-[0.12em] transition-colors cursor-pointer ${
+                className={`whitespace-nowrap text-[11px] 2xl:text-xs uppercase tracking-[0.09em] 2xl:tracking-[0.13em] transition-colors cursor-pointer ${
                   activeView === 'storefront' && activeCategory === cat
                     ? 'text-[#141413] font-semibold underline underline-offset-8 decoration-[#141413]'
                     : 'text-[#6A665E] hover:text-[#141413]'
@@ -93,16 +93,16 @@ export function Navbar({
         </div>
 
         {/* Right: Search, Orders, Role Switcher, Language, Cart */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 2xl:gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onOpenSearch}
-            className="flex items-center gap-2 rounded-full border border-[#E7E5E0] bg-white px-3 py-1.5 text-xs text-[#6A665E] hover:border-[#141413] hover:text-[#141413] transition-colors cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 rounded-full border border-[#E7E5E0] bg-white px-2.5 xl:px-3 py-1.5 text-xs text-[#6A665E] hover:border-[#141413] hover:text-[#141413] transition-colors cursor-pointer whitespace-nowrap"
             aria-label="Open quick search"
           >
             <Search className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden 2xl:inline">{lang === 'tr' ? 'Ara...' : 'Search...'}</span>
-            <kbd className="hidden sm:inline-block rounded bg-[#F2EFE9] px-1.5 py-0.5 text-[10px] font-medium text-[#524F49]">
+            <kbd className="hidden 2xl:inline-block rounded bg-[#F2EFE9] px-1.5 py-0.5 text-[10px] font-medium text-[#524F49]">
               {t.nav.searchShortcut}
             </kbd>
           </button>
