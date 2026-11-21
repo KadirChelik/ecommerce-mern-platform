@@ -56,7 +56,9 @@ function AppShell() {
     clearToastTimers();
     setCartToast(info);
     setToastVisible(false);
-    window.requestAnimationFrame(() => setToastVisible(true));
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setToastVisible(true));
+    });
     const hideTimer = window.setTimeout(() => setToastVisible(false), 2900);
     const unmountTimer = window.setTimeout(() => setCartToast(null), 3200);
     toastTimersRef.current = [hideTimer, unmountTimer];
@@ -195,7 +197,7 @@ function AppShell() {
       {cartToast && !cartOpen && (
         <div
           role="status"
-          className={`fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-white/10 bg-[#141413] px-4 py-2.5 text-xs text-[#FAF9F6] shadow-xl will-change-[opacity,transform] transition-[opacity,transform] duration-250 ease-out ${
+          className={`fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-white/10 bg-[#141413] px-4 py-2.5 text-xs text-[#FAF9F6] shadow-xl will-change-[opacity,translate] transition-[opacity,translate] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             toastVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
           }`}
         >

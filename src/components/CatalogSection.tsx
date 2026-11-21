@@ -476,7 +476,7 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
                         src={product.image}
                         alt={product.title[lang]}
                         loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover transition-[scale,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03]"
                       />
 
                       {/* Top Badges */}
@@ -501,7 +501,7 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
                       <div
                         onClick={(e) => e.stopPropagation()}
                         aria-hidden={!isSelectingSize}
-                        className={`absolute inset-x-3 bottom-3 rounded-xl border border-[#E7E5E0] bg-[#FAF9F6]/95 p-2.5 backdrop-blur-xs shadow-sm will-change-[opacity,transform] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        className={`absolute inset-x-3 bottom-3 rounded-xl border border-[#E7E5E0] bg-[#FAF9F6]/98 p-2.5 shadow-md will-change-[opacity,translate] transition-[opacity,translate,scale] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                           isSelectingSize
                             ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                             : 'opacity-0 translate-y-2 scale-[0.98] pointer-events-none'
@@ -550,12 +550,13 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
 
                       {/* Persistent Smooth Quick Action Bar Overlay */}
                       <div
-                        className={`absolute inset-x-3 bottom-3 flex items-center gap-2 will-change-[opacity,transform] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        data-testid={`quick-actions-${product.slug}`}
+                        className={`absolute inset-x-3 bottom-3 flex items-center gap-2 will-change-[opacity,translate] transition-[opacity,translate,scale] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                           isSelectingSize
-                            ? 'opacity-0 translate-y-2 pointer-events-none'
+                            ? 'opacity-0 translate-y-2 scale-[0.98] pointer-events-none'
                             : isPinnedAdded
-                              ? 'opacity-100 translate-y-0 pointer-events-auto'
-                              : 'opacity-100 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 sm:pointer-events-none sm:group-hover:pointer-events-auto'
+                              ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                              : 'opacity-100 scale-100 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 sm:pointer-events-none sm:group-hover:pointer-events-auto'
                         }`}
                       >
                         <button
@@ -569,7 +570,7 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
                           }`}
                         >
                           <span
-                            className={`absolute inset-0 flex items-center justify-center transition-[opacity,transform] duration-200 ease-out ${
+                            className={`absolute inset-0 flex items-center justify-center will-change-[opacity,translate] transition-[opacity,translate] duration-200 ease-out ${
                               isShowingAddedLabel
                                 ? 'opacity-0 -translate-y-1.5'
                                 : 'opacity-100 translate-y-0'
@@ -578,7 +579,7 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
                             + {t.product.addToBag}
                           </span>
                           <span
-                            className={`absolute inset-0 flex items-center justify-center gap-1.5 transition-[opacity,transform] duration-200 ease-out ${
+                            className={`absolute inset-0 flex items-center justify-center gap-1.5 will-change-[opacity,translate] transition-[opacity,translate] duration-200 ease-out ${
                               isShowingAddedLabel
                                 ? 'opacity-100 translate-y-0'
                                 : 'opacity-0 translate-y-1.5'
