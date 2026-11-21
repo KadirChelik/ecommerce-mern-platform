@@ -470,6 +470,7 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
                       {/* Hover Quick Actions or Inline Size Selector */}
                       {isSelectingSize ? (
                         <div
+                          key="quick-size-picker"
                           onClick={(e) => e.stopPropagation()}
                           className="absolute inset-x-3 bottom-3 rounded-xl border border-[#E7E5E0] bg-[#FAF9F6]/95 p-2.5 backdrop-blur-xs shadow-sm"
                         >
@@ -513,7 +514,8 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onIt
                         </div>
                       ) : (
                         <div
-                          className={`absolute inset-x-3 bottom-3 flex items-center gap-2 transition-all duration-200 ${
+                          key="quick-actions"
+                          className={`absolute inset-x-3 bottom-3 flex items-center gap-2 transition-[opacity,transform] duration-200 ${
                             isAdded
                               ? 'opacity-100 translate-y-0'
                               : 'opacity-100 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0'
