@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../server/app.js';
+import { isS3Configured } from '../server/s3.js';
 import { demoStore } from '../server/store.js';
 
 describe('HANN Studio Express API & JWT RBAC', () => {
@@ -203,5 +204,29 @@ describe('HANN Studio Express API & JWT RBAC', () => {
       });
     expect(dupSkuOversell.status).toBe(409);
     expect(dupSkuOversell.body.code).toBe('INSUFFICIENT_STOCK');
+  });
+
+  it('recognizes legacy AWS_S3_BUCKET_NAME in S3 configuration checks', () => {
+    const prevKey = process.env.AWS_ACCESS_KEY_ID;
+    const prevSecret = process.env.AWS_SECRET_ACCESS_KEY;
+    const prevBucket = process.env.AWS_S3_BUCKET;
+    const prevLegacyBucket = process.env.AWS_S3_BUCKET_NAME;
+
+    try {
+      delete process.env.AWS_S3_BUCKET;
+      process.env.AWS_ACCESS_KEY_ID = 'test-key';
+      process.env.AWS_SECRET_ACCESS_KEY = 'test-secret';
+      process.env.AWS_S3_BUCKET_NAME = 'legacy-hann-bucket';
+      expect(isS3Configured()).toBe(true);
+    } finally {
+      if (prevKey === undefined) delete process.env.AWS_ACCESS_KEY_ID;
+      else process.env.AWS_ACCESS_KEY_ID = prevKey;
+      if (prevSecret === undefined) delete process.env.AWS_SECRET_ACCESS_KEY;
+      else process.env.AWS_SECRET_ACCESS_KEY = prevSecret;
+      if (prevBucket === undefined) delete process.env.AWS_S3_BUCKET;
+      else process.env.AWS_S3_BUCKET = prevBucket;
+      if (prevLegacyBucket === undefined) delete process.env.AWS_S3_BUCKET_NAME;
+      else process.env.AWS_S3_BUCKET_NAME = prevLegacyBucket;
+    }
   });
 });

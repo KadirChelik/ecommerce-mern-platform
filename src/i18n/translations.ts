@@ -198,7 +198,7 @@ export const TRANSLATIONS: Record<
         'İtalyan bakire yünü, Avrupa keteni ve ham kupro ile tasarlanmış 10 parçalık modern gardırop seçkisi.',
       ctaPrimary: 'Koleksiyonu Keşfet',
       ctaSecondary: 'Dış Giyime Git',
-      statLine: '3.000 TL üzeri ücretsiz kargo · JWT RBAC + MongoDB/DemoStore + AWS S3 adaptörü',
+      statLine: '3.000 TL üzeri ücretsiz kargo · Aynı gün stüdyo paketleme · 14 gün kolay iade',
     },
     catalog: {
       filtersTitle: 'Filtreler',
@@ -351,8 +351,8 @@ export const TRANSLATIONS: Record<
       actionLang: 'Dili İngilizceye (EN) Çevir',
     },
     footer: {
-      stackNote: 'React 19 · TypeScript · Tailwind v4 · Express · MongoDB / DemoStore · JWT RBAC · AWS S3 · Vitest',
-      demoNotice: 'Sıfır bekleme hibrit mimari: DemoStore anında çalışır, MONGODB_URI ve AWS_S3 env tanımlandığında canlı bulut moduna geçer.',
+      stackNote: 'İstanbul · Atelier AW26 Kapsül Koleksiyonu',
+      demoNotice: '© 2026 HANN Studio — Tüm ödeme ve teslimat adımları portfolyo gösterimi için simüle edilmiştir.',
     },
   },
   en: {
@@ -382,7 +382,7 @@ export const TRANSLATIONS: Record<
         'A curated 10-piece architectural wardrobe crafted from Italian virgin wool, Belgian flax linen, and matte cupro.',
       ctaPrimary: 'Explore Collection',
       ctaSecondary: 'Shop Outerwear',
-      statLine: 'Free shipping over 3,000 TRY · JWT RBAC + MongoDB/DemoStore + AWS S3 Adapter',
+      statLine: 'Complimentary shipping over 3,000 TRY · Same-day studio packing · 14-day returns',
     },
     catalog: {
       filtersTitle: 'Filters',
@@ -535,8 +535,8 @@ export const TRANSLATIONS: Record<
       actionLang: 'Switch Language to Turkish (TR)',
     },
     footer: {
-      stackNote: 'React 19 · TypeScript · Tailwind v4 · Express · MongoDB / DemoStore · JWT RBAC · AWS S3 · Vitest',
-      demoNotice: 'Zero-cold-start hybrid backend: runs instantly on DemoStore and switches automatically to MongoDB + AWS S3 when configured.',
+      stackNote: 'Istanbul · Atelier AW26 Capsule Collection',
+      demoNotice: '© 2026 HANN Studio — Checkout and fulfillment steps run in portfolio showcase mode.',
     },
   },
 };

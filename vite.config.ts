@@ -1,7 +1,22 @@
-import { defineConfig, type Connect, type Plugin, type ViteDevServer } from 'vite';
+import { defineConfig, loadEnv, type Connect, type Plugin, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+
+const SERVER_ENV_KEYS = [
+  'MONGODB_URI',
+  'DATABASE_URL',
+  'MONGO_URI',
+  'MONGODB_DB',
+  'JWT_SECRET',
+  'ALLOW_DEMO_AUTH',
+  'AWS_REGION',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_S3_BUCKET',
+  'AWS_S3_BUCKET_NAME',
+  'AWS_S3_PUBLIC_BASE_URL',
+] as const;
 
 function expressApiPlugin(): Plugin {
   let previewSsrServer: ViteDevServer | null = null;
@@ -56,6 +71,15 @@ function expressApiPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), tailwindcss(), expressApiPlugin()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  for (const key of SERVER_ENV_KEYS) {
+    if (!process.env[key] && env[key]) {
+      process.env[key] = env[key];
+    }
+  }
+
+  return {
+    plugins: [react(), tailwindcss(), expressApiPlugin()],
+  };
 });

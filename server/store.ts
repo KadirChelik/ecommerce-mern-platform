@@ -594,9 +594,18 @@ class MongoStore implements CommerceStore {
 export const demoStore = new DemoStore();
 let activeStore: CommerceStore | null = null;
 
+export function getConfiguredMongoUri(): string | undefined {
+  return (
+    process.env.MONGODB_URI?.trim() ||
+    process.env.DATABASE_URL?.trim() ||
+    process.env.MONGO_URI?.trim() ||
+    undefined
+  );
+}
+
 export function getStore(): CommerceStore {
   if (activeStore) return activeStore;
-  const mongoUri = process.env.MONGODB_URI?.trim();
+  const mongoUri = getConfiguredMongoUri();
   if (mongoUri) {
     activeStore = new MongoStore(mongoUri, process.env.MONGODB_DB?.trim() || 'hann_studio');
   } else {

@@ -20,13 +20,17 @@ const DEMO_USERS: Record<UserRole, AuthUser> = {
 
 let cachedEphemeralSecret: string | null = null;
 
+function hasConfiguredMongoUri(): boolean {
+  return Boolean(
+    process.env.MONGODB_URI?.trim() ||
+      process.env.DATABASE_URL?.trim() ||
+      process.env.MONGO_URI?.trim(),
+  );
+}
+
 export function isDemoAuthEnabled(): boolean {
   const explicit = process.env.ALLOW_DEMO_AUTH?.trim().toLowerCase();
   if (explicit === 'false') return false;
-  if (explicit === 'true') return true;
-  if (process.env.NODE_ENV === 'production' && Boolean(process.env.MONGODB_URI?.trim())) {
-    return false;
-  }
   return true;
 }
 
@@ -34,7 +38,7 @@ function getJwtSecret(): string {
   const configured = process.env.JWT_SECRET?.trim();
   if (configured) return configured;
 
-  if (process.env.NODE_ENV === 'production' && Boolean(process.env.MONGODB_URI?.trim())) {
+  if (process.env.NODE_ENV === 'production' && hasConfiguredMongoUri()) {
     throw new Error('JWT_SECRET environment variable is required in production with MongoDB');
   }
 
