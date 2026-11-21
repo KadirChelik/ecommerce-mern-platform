@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SlidersHorizontal, X, Check, Eye } from 'lucide-react';
 import {
   computeFacetCounts,
@@ -13,6 +13,7 @@ interface CatalogSectionProps {
   filters: CatalogFilterState;
   onChangeFilters: (next: CatalogFilterState) => void;
   onSelectProduct: (product: Product) => void;
+  onItemAdded?: (info: { title: string; size: string }) => void;
 }
 
 const CATEGORIES: CategoryId[] = ['outerwear', 'women', 'men', 'tailoring'];
@@ -30,11 +31,20 @@ const COLOR_SWATCHES: Array<{ id: string; hex: string; tr: string; en: string }>
   { id: 'slate', hex: '#5D656D', tr: 'Arduvaz', en: 'Slate' },
 ];
 
-export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: CatalogSectionProps) {
+export function CatalogSection({ filters, onChangeFilters, onSelectProduct, onItemAdded }: CatalogSectionProps) {
   const { lang, t, products, addToCart } = useStore();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [quickSizeProductId, setQuickSizeProductId] = useState<string | null>(null);
   const [quickAdded, setQuickAdded] = useState<{ id: string; size: string } | null>(null);
+
+  useEffect(() => {
+    if (!quickSizeProductId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setQuickSizeProductId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [quickSizeProductId]);
 
   const filteredProducts = useMemo(() => filterAndSortProducts(products, filters), [products, filters]);
   const facets = useMemo(() => computeFacetCounts(products, filters), [products, filters]);
@@ -96,6 +106,7 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: Ca
     if (res.added) {
       setQuickSizeProductId(null);
       setQuickAdded({ id: product.id, size });
+      onItemAdded?.({ title: product.title[lang], size });
       setTimeout(
         () => setQuickAdded((prev) => (prev?.id === product.id ? null : prev)),
         1500,
@@ -321,6 +332,82 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: Ca
         </div>
       </div>
 
+      {/* Active Filter Chips */}
+      {hasActiveFilters && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {filters.category && (
+            <button
+              type="button"
+              onClick={() => onChangeFilters({ ...filters, category: undefined })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#D8D3C8] bg-[#F2EFE9] px-3 py-1 text-xs font-medium text-[#141413] hover:border-[#141413] cursor-pointer"
+            >
+              <span>{t.categories[filters.category]}</span>
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          {filters.sizes.map((size) => (
+            <button
+              key={`chip-size-${size}`}
+              type="button"
+              onClick={() => toggleSize(size)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#D8D3C8] bg-white px-3 py-1 text-xs font-medium text-[#141413] hover:border-[#141413] cursor-pointer"
+            >
+              <span>{t.catalog.sizeLabel}: {size}</span>
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+          {filters.colors.map((colorId) => {
+            const sw = COLOR_SWATCHES.find((c) => c.id === colorId);
+            return (
+              <button
+                key={`chip-color-${colorId}`}
+                type="button"
+                onClick={() => toggleColor(colorId)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#D8D3C8] bg-white px-3 py-1 text-xs font-medium text-[#141413] hover:border-[#141413] cursor-pointer"
+              >
+                {sw && (
+                  <span
+                    className="h-2.5 w-2.5 rounded-full border border-black/15"
+                    style={{ backgroundColor: sw.hex }}
+                  />
+                )}
+                <span>{sw ? (lang === 'tr' ? sw.tr : sw.en) : colorId}</span>
+                <X className="h-3 w-3" />
+              </button>
+            );
+          })}
+          {(typeof filters.minPrice === 'number' || typeof filters.maxPrice === 'number') && (
+            <button
+              type="button"
+              onClick={() => onChangeFilters({ ...filters, minPrice: undefined, maxPrice: undefined })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#D8D3C8] bg-white px-3 py-1 text-xs font-medium text-[#141413] hover:border-[#141413] tabular-nums cursor-pointer"
+            >
+              <span>
+                {filters.minPrice ?? 0} – {filters.maxPrice ?? '∞'} TL
+              </span>
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          {filters.inStockOnly && (
+            <button
+              type="button"
+              onClick={() => onChangeFilters({ ...filters, inStockOnly: false })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#D8D3C8] bg-white px-3 py-1 text-xs font-medium text-[#141413] hover:border-[#141413] cursor-pointer"
+            >
+              <span>{t.catalog.inStockOnly}</span>
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={clearAll}
+            className="text-xs font-medium text-[#6A665E] underline underline-offset-4 hover:text-[#141413] ml-1 cursor-pointer"
+          >
+            {t.catalog.clearAll}
+          </button>
+        </div>
+      )}
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
         <aside className="hidden lg:col-span-3 lg:block">
@@ -429,7 +516,7 @@ export function CatalogSection({ filters, onChangeFilters, onSelectProduct }: Ca
                           className={`absolute inset-x-3 bottom-3 flex items-center gap-2 transition-all duration-200 ${
                             isAdded
                               ? 'opacity-100 translate-y-0'
-                              : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
+                              : 'opacity-100 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0'
                           }`}
                         >
                           <button

@@ -53,6 +53,14 @@ export const TRANSLATIONS: Record<
       selectSize: string;
       selectSizePrompt: string;
       sizeHint: string;
+      sizeGuide: string;
+      sizeGuideChest: string;
+      sizeGuideWaist: string;
+      sizeGuideShoulder: string;
+      quantityLabel: string;
+      shareLink: string;
+      linkCopied: string;
+      viewBag: string;
       addToBag: string;
       addedToBag: string;
       soldOutVariant: string;
@@ -72,9 +80,11 @@ export const TRANSLATIONS: Record<
       freeShippingAway: (amount: string) => string;
       couponPlaceholder: string;
       apply: string;
+      removeCoupon: string;
       demoCoupons: string;
       invalidCoupon: string;
       minSubtotalCoupon: string;
+      maxStockReached: string;
       subtotal: string;
       discount: string;
       shipping: string;
@@ -235,6 +245,14 @@ export const TRANSLATIONS: Record<
       selectSize: 'Beden Seçimi',
       selectSizePrompt: 'Lütfen beden seçiniz',
       sizeHint: 'Stok durumunu görmek için beden seçin',
+      sizeGuide: 'Beden Rehberi (cm)',
+      sizeGuideChest: 'Göğüs',
+      sizeGuideWaist: 'Bel',
+      sizeGuideShoulder: 'Omuz',
+      quantityLabel: 'Adet',
+      shareLink: 'Linki Kopyala',
+      linkCopied: 'Link Kopyalandı',
+      viewBag: 'Sepeti Aç',
       addToBag: 'Sepete Ekle',
       addedToBag: 'Sepete Eklendi',
       soldOutVariant: 'Bu Varyant Tükendi',
@@ -254,9 +272,11 @@ export const TRANSLATIONS: Record<
       freeShippingAway: (amount) => `Ücretsiz kargo için ${amount} daha ekleyin`,
       couponPlaceholder: 'Promosyon kodu (ör. HANN10)',
       apply: 'Uygula',
+      removeCoupon: 'Kuponu Kaldır',
       demoCoupons: 'Demo kodlar:',
       invalidCoupon: 'Geçersiz promosyon kodu',
       minSubtotalCoupon: 'Minimum sepet tutarı sağlanmadı',
+      maxStockReached: 'Stok sınırı',
       subtotal: 'Ara Toplam',
       discount: 'İndirim',
       shipping: 'Kargo',
@@ -421,6 +441,14 @@ export const TRANSLATIONS: Record<
       selectSize: 'Size',
       selectSizePrompt: 'Please select a size',
       sizeHint: 'Select a size to check availability',
+      sizeGuide: 'Size Guide (cm)',
+      sizeGuideChest: 'Chest',
+      sizeGuideWaist: 'Waist',
+      sizeGuideShoulder: 'Shoulder',
+      quantityLabel: 'Qty',
+      shareLink: 'Copy Link',
+      linkCopied: 'Link Copied',
+      viewBag: 'Open Bag',
       addToBag: 'Add to Bag',
       addedToBag: 'Added to Bag',
       soldOutVariant: 'Variant Sold Out',
@@ -440,9 +468,11 @@ export const TRANSLATIONS: Record<
       freeShippingAway: (amount) => `Add ${amount} more for complimentary shipping`,
       couponPlaceholder: 'Promo code (e.g. HANN10)',
       apply: 'Apply',
+      removeCoupon: 'Remove Coupon',
       demoCoupons: 'Demo codes:',
       invalidCoupon: 'Invalid promo code',
       minSubtotalCoupon: 'Minimum bag subtotal not met',
+      maxStockReached: 'Max stock',
       subtotal: 'Subtotal',
       discount: 'Discount',
       shipping: 'Shipping',

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, CreditCard, Lock, Truck, X } from 'lucide-react';
 import { calculateCartTotals, formatPriceTry } from '../../shared/commerce.js';
 import { shippingAddressSchema } from '../../shared/schemas.js';
@@ -9,6 +9,17 @@ interface CheckoutModalProps {
   open: boolean;
   onClose: () => void;
   onOrderCreated: (orderNumber: string) => void;
+}
+
+function formatCardNumberInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 16);
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+
+function formatExpiryInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
 }
 
 export function CheckoutModal({ open, onClose, onOrderCreated }: CheckoutModalProps) {
@@ -39,6 +50,27 @@ export function CheckoutModal({ open, onClose, onOrderCreated }: CheckoutModalPr
     () => calculateCartTotals(cart, couponCode, deliveryMethod),
     [cart, couponCode, deliveryMethod],
   );
+
+  const handleResetAndClose = useCallback(() => {
+    if (submitting) return;
+    setCreatedOrder(null);
+    setStep(0);
+    onClose();
+  }, [onClose, submitting]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleResetAndClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [handleResetAndClose, open]);
 
   if (!open) return null;
 
@@ -80,12 +112,6 @@ export function CheckoutModal({ open, onClose, onOrderCreated }: CheckoutModalPr
     }
   };
 
-  const handleResetAndClose = () => {
-    setCreatedOrder(null);
-    setStep(0);
-    onClose();
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-xs"
@@ -95,7 +121,7 @@ export function CheckoutModal({ open, onClose, onOrderCreated }: CheckoutModalPr
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#E7E5E0] bg-[#FAF9F6] p-6 sm:p-8 shadow-2xl"
+        className="animate-modal-in relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#E7E5E0] bg-[#FAF9F6] p-6 sm:p-8 shadow-2xl"
       >
         <button
           type="button"
@@ -142,21 +168,29 @@ export function CheckoutModal({ open, onClose, onOrderCreated }: CheckoutModalPr
 
             {/* Step Indicator */}
             <div className="mt-5 grid grid-cols-3 gap-2 border-b border-[#E7E5E0] pb-4">
-              {t.checkout.steps.map((label, idx) => (
-                <div
-                  key={label}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
-                    step === idx
-                      ? 'bg-[#141413] text-[#FAF9F6]'
-                      : idx < step
-                        ? 'bg-[#EAE6DC] text-[#141413]'
-                        : 'bg-white text-[#8C877E] border border-[#E7E5E0]'
-                  }`}
-                >
-                  <span className="tabular-nums">0{idx + 1}</span>
-                  <span>{label}</span>
-                </div>
-              ))}
+              {t.checkout.steps.map((label, idx) => {
+                const canJumpBack = idx < step;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    disabled={!canJumpBack}
+                    onClick={() => {
+                      if (canJumpBack) setStep(idx as 0 | 1 | 2);
+                    }}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-left transition-colors ${
+                      step === idx
+                        ? 'bg-[#141413] text-[#FAF9F6]'
+                        : canJumpBack
+                          ? 'bg-[#EAE6DC] text-[#141413] hover:bg-[#DFDBD2] cursor-pointer'
+                          : 'bg-white text-[#8C877E] border border-[#E7E5E0]'
+                    }`}
+                  >
+                    <span className="tabular-nums">0{idx + 1}</span>
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Step 0: Shipping */}
@@ -258,8 +292,9 @@ export function CheckoutModal({ open, onClose, onOrderCreated }: CheckoutModalPr
                     <CreditCard className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#78746C]" />
                     <input
                       type="text"
+                      inputMode="numeric"
                       value={card.number}
-                      onChange={(e) => setCard({ ...card, number: e.target.value })}
+                      onChange={(e) => setCard({ ...card, number: formatCardNumberInput(e.target.value) })}
                       className="w-full rounded-xl border border-[#E7E5E0] bg-white py-2.5 pl-10 pr-3.5 text-sm tabular-nums outline-none focus:border-[#141413]"
                     />
                   </div>
@@ -271,8 +306,9 @@ export function CheckoutModal({ open, onClose, onOrderCreated }: CheckoutModalPr
                     </label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       value={card.expiry}
-                      onChange={(e) => setCard({ ...card, expiry: e.target.value })}
+                      onChange={(e) => setCard({ ...card, expiry: formatExpiryInput(e.target.value) })}
                       className="w-full rounded-xl border border-[#E7E5E0] bg-white px-3.5 py-2.5 text-sm tabular-nums outline-none focus:border-[#141413]"
                     />
                   </div>

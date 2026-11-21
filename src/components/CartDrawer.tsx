@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Minus, Plus, ShoppingBag, Tag, Trash2, X } from 'lucide-react';
 import { formatPriceTry, getVariantStock } from '../../shared/commerce.js';
+import type { Product } from '../../shared/types.js';
 import { useStore } from '../context/StoreContext.js';
 
 interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
   onCheckout: () => void;
+  onSelectProduct?: (product: Product) => void;
 }
 
-export function CartDrawer({ open, onClose, onCheckout }: CartDrawerProps) {
+export function CartDrawer({ open, onClose, onCheckout, onSelectProduct }: CartDrawerProps) {
   const {
     lang,
     t,
@@ -23,6 +25,24 @@ export function CartDrawer({ open, onClose, onCheckout }: CartDrawerProps) {
   } = useStore();
   const [couponInput, setCouponInput] = useState(couponCode);
 
+  useEffect(() => {
+    setCouponInput(couponCode);
+  }, [couponCode]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose, open]);
+
   if (!open) return null;
 
   const progressPct = Math.min(
@@ -31,15 +51,16 @@ export function CartDrawer({ open, onClose, onCheckout }: CartDrawerProps) {
   );
 
   const applyCoupon = (code: string) => {
-    setCouponInput(code);
-    setCouponCode(code.trim().toUpperCase());
+    const normalized = code.trim().toUpperCase();
+    setCouponInput(normalized);
+    setCouponCode(normalized);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
       <div className="fixed inset-0 bg-black/45 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="relative z-10 flex h-full w-full max-w-md flex-col bg-[#FAF9F6] shadow-2xl border-l border-[#E7E5E0]">
+      <div className="animate-drawer-in relative z-10 flex h-full w-full max-w-md flex-col bg-[#FAF9F6] shadow-2xl border-l border-[#E7E5E0]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E7E5E0] px-6 py-4">
           <div className="flex items-center gap-2.5">
@@ -100,19 +121,44 @@ export function CartDrawer({ open, onClose, onCheckout }: CartDrawerProps) {
                     key={item.sku}
                     className="flex gap-4 border-b border-[#E7E5E0] pb-5 last:border-b-0"
                   >
-                    <img
-                      src={item.image}
-                      alt={item.titleSnapshot[lang]}
-                      className="h-24 w-20 shrink-0 rounded-lg border border-[#E7E5E0] bg-[#F3F1EC] object-cover"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (product && onSelectProduct) {
+                          onClose();
+                          onSelectProduct(product);
+                        }
+                      }}
+                      className="shrink-0 cursor-pointer text-left"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.titleSnapshot[lang]}
+                        className="h-24 w-20 rounded-lg border border-[#E7E5E0] bg-[#F3F1EC] object-cover"
+                      />
+                    </button>
                     <div className="flex flex-1 flex-col justify-between">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-sm font-medium text-[#141413]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (product && onSelectProduct) {
+                                onClose();
+                                onSelectProduct(product);
+                              }
+                            }}
+                            className="text-left text-sm font-medium text-[#141413] hover:underline underline-offset-4 cursor-pointer"
+                          >
                             {item.titleSnapshot[lang]}
-                          </p>
+                          </button>
                           <p className="mt-0.5 text-xs text-[#6A665E]">
                             {colorLabel} · {item.size}
+                            {item.quantity >= maxStock && (
+                              <span className="ml-2 text-[10px] font-medium text-[#9A3412]">
+                                ({t.cart.maxStockReached})
+                              </span>
+                            )}
                           </p>
                         </div>
                         <button
@@ -189,7 +235,7 @@ export function CartDrawer({ open, onClose, onCheckout }: CartDrawerProps) {
                   <button
                     key={code}
                     type="button"
-                    onClick={() => applyCoupon(code)}
+                    onClick={() => applyCoupon(couponCode === code ? '' : code)}
                     className={`rounded-md border px-1.5 py-0.5 font-mono text-[10px] cursor-pointer ${
                       couponCode === code
                         ? 'border-[#141413] bg-[#141413] text-[#FAF9F6]'
@@ -199,6 +245,17 @@ export function CartDrawer({ open, onClose, onCheckout }: CartDrawerProps) {
                     {code}
                   </button>
                 ))}
+                {cartTotals.appliedCoupon && (
+                  <button
+                    type="button"
+                    onClick={() => applyCoupon('')}
+                    aria-label={t.cart.removeCoupon}
+                    className="inline-flex items-center gap-1 rounded-md border border-[#D8D3C8] bg-white px-1.5 py-0.5 text-[10px] text-[#57534C] hover:text-[#991B1B] cursor-pointer"
+                  >
+                    <span>×</span>
+                    <span>{t.cart.removeCoupon}</span>
+                  </button>
+                )}
               </div>
 
               {cartTotals.couponError === 'INVALID_CODE' && (

@@ -1,4 +1,5 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
 import { parseFiltersFromSearch, serializeFiltersToSearch } from '../shared/commerce.js';
 import type { CatalogFilterState, CategoryId, Product } from '../shared/types.js';
 import { CartDrawer } from './components/CartDrawer.js';
@@ -40,6 +41,14 @@ function AppShell() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [trackedOrderNumber, setTrackedOrderNumber] = useState<string | undefined>(undefined);
+  const [cartToast, setCartToast] = useState<{ title: string; size: string } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  const showAddedToast = (info: { title: string; size: string }) => {
+    setCartToast(info);
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setCartToast(null), 3500);
+  };
 
   // Sync URL query params bidirectionally (filters + ?product=<slug>)
   const syncUrl = (nextFilters: CatalogFilterState, nextProductSlug?: string | null) => {
@@ -125,6 +134,7 @@ function AppShell() {
               filters={filters}
               onChangeFilters={updateFilters}
               onSelectProduct={handleSelectProduct}
+              onItemAdded={showAddedToast}
             />
           </>
         )}
@@ -157,6 +167,7 @@ function AppShell() {
         product={selectedProduct}
         onClose={() => handleSelectProduct(null)}
         onOpenCart={() => setCartOpen(true)}
+        onItemAdded={showAddedToast}
       />
 
       <CartDrawer
@@ -166,7 +177,32 @@ function AppShell() {
           setCartOpen(false);
           setCheckoutOpen(true);
         }}
+        onSelectProduct={handleSelectProduct}
       />
+
+      {cartToast && !cartOpen && (
+        <div
+          role="status"
+          className="animate-toast-in fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-[#E7E5E0] bg-[#141413] px-4 py-2.5 text-xs text-[#FAF9F6] shadow-xl"
+        >
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#1F3A2E] text-white">
+            <Check className="h-3 w-3" />
+          </span>
+          <span className="max-w-[210px] truncate">
+            {cartToast.title} ({cartToast.size})
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setCartToast(null);
+              setCartOpen(true);
+            }}
+            className="rounded-full bg-[#FAF9F6] px-2.5 py-1 text-[11px] font-semibold text-[#141413] hover:bg-[#EAE6DC] cursor-pointer"
+          >
+            {t.product.viewBag}
+          </button>
+        </div>
+      )}
 
       {checkoutOpen && (
         <Suspense fallback={null}>
