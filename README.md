@@ -1,6 +1,6 @@
 # HANN Studio — Full-Stack Editorial E-Commerce Platform (v2)
 
-**Live Demo:** [hann-avm.vercel.app](https://hann-avm.vercel.app/)
+**Live Demo:** [ecommerce-mern-platform.vercel.app](https://ecommerce-mern-platform.vercel.app/)
 
 **HANN Studio** is a modernized, full-stack editorial fashion & lifestyle concept store engineered with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Node/Express**, **MongoDB + Instant DemoStore**, **JWT RBAC**, and an **AWS S3** presigned upload adapter.
 
