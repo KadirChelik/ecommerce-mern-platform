@@ -11,6 +11,7 @@ interface NavbarProps {
   onNavigateView: (view: ActiveView) => void;
   onOpenSearch: () => void;
   onOpenCart: () => void;
+  onPrefetchAdmin?: () => void;
 }
 
 const CATEGORIES: CategoryId[] = ['outerwear', 'women', 'men', 'tailoring'];
@@ -22,6 +23,7 @@ export function Navbar({
   onNavigateView,
   onOpenSearch,
   onOpenCart,
+  onPrefetchAdmin,
 }: NavbarProps) {
   const { lang, setLang, t, user, switchRole, totalCartCount } = useStore();
   const isAdmin = user.role === 'admin';
@@ -35,39 +37,42 @@ export function Navbar({
     }
   };
 
-  const handleToggleRole = async () => {
-    const next = isAdmin ? 'customer' : 'admin';
-    await switchRole(next);
-    if (next === 'admin') {
-      onNavigateView('admin');
-    } else if (activeView === 'admin') {
+  const handleSelectCustomer = () => {
+    if (isAdmin) {
+      void switchRole('customer');
+    }
+    if (activeView === 'admin') {
       onNavigateView('storefront');
     }
+  };
+
+  const handleSelectAdmin = () => {
+    if (!isAdmin) {
+      void switchRole('admin');
+    }
+    onNavigateView('admin');
   };
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E7E5E0] bg-[#FAF9F6]/92 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         {/* Left: Brand + Primary Nav */}
-        <div className="flex items-center gap-4 2xl:gap-7 min-w-0">
+        <div className="flex items-center gap-4 2xl:gap-6 min-w-0">
           <button
             type="button"
             onClick={() => handleCategoryClick(undefined)}
             className="flex items-baseline gap-2.5 text-left cursor-pointer group shrink-0 whitespace-nowrap"
           >
-            <span className="font-editorial text-xl 2xl:text-2xl font-semibold tracking-[0.12em] 2xl:tracking-[0.14em] text-[#141413] whitespace-nowrap">
+            <span className="font-editorial text-xl font-semibold tracking-[0.12em] text-[#141413] whitespace-nowrap">
               {t.brand}
-            </span>
-            <span className="hidden 2xl:inline-block text-[10px] uppercase tracking-[0.22em] text-[#78746C]">
-              AW26
             </span>
           </button>
 
-          <nav className="hidden xl:flex items-center gap-3.5 2xl:gap-6 shrink-0" aria-label="Main navigation">
+          <nav className="hidden xl:flex items-center gap-3.5 2xl:gap-5 shrink-0" aria-label="Main navigation">
             <button
               type="button"
               onClick={() => handleCategoryClick(undefined)}
-              className={`whitespace-nowrap text-[11px] 2xl:text-xs uppercase tracking-[0.09em] 2xl:tracking-[0.13em] transition-colors cursor-pointer ${
+              className={`whitespace-nowrap text-[11px] uppercase tracking-[0.09em] 2xl:tracking-[0.11em] transition-colors cursor-pointer ${
                 activeView === 'storefront' && !activeCategory
                   ? 'text-[#141413] font-semibold underline underline-offset-8 decoration-[#141413]'
                   : 'text-[#6A665E] hover:text-[#141413]'
@@ -80,7 +85,7 @@ export function Navbar({
                 key={cat}
                 type="button"
                 onClick={() => handleCategoryClick(cat)}
-                className={`whitespace-nowrap text-[11px] 2xl:text-xs uppercase tracking-[0.09em] 2xl:tracking-[0.13em] transition-colors cursor-pointer ${
+                className={`whitespace-nowrap text-[11px] uppercase tracking-[0.09em] 2xl:tracking-[0.11em] transition-colors cursor-pointer ${
                   activeView === 'storefront' && activeCategory === cat
                     ? 'text-[#141413] font-semibold underline underline-offset-8 decoration-[#141413]'
                     : 'text-[#6A665E] hover:text-[#141413]'
@@ -93,15 +98,14 @@ export function Navbar({
         </div>
 
         {/* Right: Search, Orders, Role Switcher, Language, Cart */}
-        <div className="flex items-center gap-1.5 sm:gap-2 2xl:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={onOpenSearch}
-            className="flex items-center gap-2 rounded-full border border-[#E7E5E0] bg-white px-2.5 xl:px-3 py-1.5 text-xs text-[#6A665E] hover:border-[#141413] hover:text-[#141413] transition-colors cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 rounded-full border border-[#E7E5E0] bg-white px-2.5 xl:px-3 py-1.5 text-xs text-[#6A665E] hover:border-[#141413] hover:text-[#141413] transition-colors cursor-pointer whitespace-nowrap"
             aria-label="Open quick search"
           >
             <Search className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden 2xl:inline">{lang === 'tr' ? 'Ara...' : 'Search...'}</span>
             <kbd className="hidden 2xl:inline-block rounded bg-[#F2EFE9] px-1.5 py-0.5 text-[10px] font-medium text-[#524F49]">
               {t.nav.searchShortcut}
             </kbd>
@@ -120,35 +124,47 @@ export function Navbar({
             <span>{t.nav.orders}</span>
           </button>
 
-          {/* 1-Click Role Switcher */}
-          <button
-            type="button"
-            onClick={handleToggleRole}
+          {/* Fixed-Width Sliding Customer ↔ Admin Capsule */}
+          <div
+            role="group"
+            aria-label={t.nav.roleSwitchTooltip}
             title={t.nav.roleSwitchTooltip}
-            data-testid="role-switch-btn"
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
-              isAdmin
-                ? 'border-[#1F3A2E] bg-[#1F3A2E] text-[#FAF9F6]'
-                : 'border-[#D7D2C8] bg-[#F2EFE9] text-[#141413] hover:border-[#141413]'
-            }`}
+            data-testid="role-switch-group"
+            onMouseEnter={() => onPrefetchAdmin?.()}
+            onFocus={() => onPrefetchAdmin?.()}
+            className="relative inline-grid grid-cols-2 items-center rounded-full border border-[#E7E5E0] bg-[#F2EFE9] p-0.5 text-[11px] font-medium shrink-0"
           >
-            {isAdmin ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" /> : <User className="h-3.5 w-3.5 shrink-0" />}
-            <span>{isAdmin ? t.nav.adminMode : t.nav.customerMode}</span>
-          </button>
-
-          {isAdmin && (
+            <span
+              aria-hidden="true"
+              className={`pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-full will-change-[translate] transition-[translate,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isAdmin ? 'translate-x-full bg-[#1F3A2E]' : 'translate-x-0 bg-[#141413]'
+              }`}
+            />
             <button
               type="button"
-              onClick={() => onNavigateView(activeView === 'admin' ? 'storefront' : 'admin')}
-              className={`hidden md:inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                activeView === 'admin'
-                  ? 'border-[#141413] bg-[#141413] text-[#FAF9F6]'
-                  : 'border-[#E7E5E0] bg-white text-[#141413] hover:border-[#141413]'
+              onClick={handleSelectCustomer}
+              aria-pressed={!isAdmin}
+              data-testid="role-customer-btn"
+              className={`relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-1 whitespace-nowrap transition-colors duration-200 cursor-pointer ${
+                !isAdmin ? 'text-[#FAF9F6]' : 'text-[#524F49] hover:text-[#141413]'
               }`}
             >
-              {t.nav.admin}
+              <User className="h-3 w-3 shrink-0" />
+              <span>{t.nav.customerMode}</span>
             </button>
-          )}
+            <button
+              type="button"
+              onClick={handleSelectAdmin}
+              aria-pressed={isAdmin}
+              data-testid="role-admin-btn"
+              className={`relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-1 whitespace-nowrap transition-colors duration-200 cursor-pointer ${
+                isAdmin ? 'text-[#FAF9F6]' : 'text-[#524F49] hover:text-[#141413]'
+              }`}
+            >
+              <ShieldCheck className="h-3 w-3 shrink-0" />
+              <span>{t.nav.adminMode}</span>
+            </button>
+          </div>
 
           {/* TR / EN Language Switcher */}
           <div

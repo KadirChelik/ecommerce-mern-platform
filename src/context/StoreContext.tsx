@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { INITIAL_ORDERS, INITIAL_PRODUCTS } from '../../shared/catalogSeed.js';
 import { calculateCartTotals, getVariantStock } from '../../shared/commerce.js';
 import type {
@@ -153,6 +153,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [storageMode, setStorageMode] = useState<'demo' | 'mongodb'>('demo');
   const [s3Configured, setS3Configured] = useState(false);
   const [loading, setLoading] = useState(true);
+  const roleRequestIdRef = useRef(0);
 
   const setLang = useCallback((next: Language) => {
     setLangState(next);
@@ -214,43 +215,56 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const authenticateRole = useCallback(async (nextRole: UserRole): Promise<string | null> => {
+    const reqId = ++roleRequestIdRef.current;
     setRole(nextRole);
     localStorage.setItem(STORAGE_KEYS.role, nextRole);
+    setToken(null);
+    setUser(
+      nextRole === 'admin'
+        ? { id: 'usr-admin-demo', name: 'Kadir Çelik (Studio Admin)', email: 'admin@hannstudio.com', role: 'admin' }
+        : { id: 'usr-customer-demo', name: 'Selin Demir', email: 'selin.demir@example.com', role: 'customer' },
+    );
     try {
       const res = await fetch('/api/auth/demo-switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: nextRole }),
       });
+      if (reqId !== roleRequestIdRef.current) return null;
       if (res.ok) {
         const data = (await res.json()) as { user: AuthUser; token: string };
+        if (reqId !== roleRequestIdRef.current) return null;
         setUser(data.user);
         setToken(data.token);
         return data.token;
       }
     } catch {
-      // Fallback to local user object if offline
+      // Offline / network fallback already applied optimistically
     }
-    setUser(
-      nextRole === 'admin'
-        ? { id: 'usr-admin-demo', name: 'Kadir Çelik (Studio Admin)', email: 'admin@hannstudio.com', role: 'admin' }
-        : { id: 'usr-customer-demo', name: 'Selin Demir', email: 'selin.demir@example.com', role: 'customer' },
-    );
+    if (reqId === roleRequestIdRef.current) {
+      setToken(null);
+    }
     return null;
   }, []);
 
   const switchRole = useCallback(
     async (nextRole: UserRole) => {
+      if (nextRole === 'admin') {
+        setOverview((prev) => prev ?? buildLocalOverview(products, orders));
+      }
       const nextToken = await authenticateRole(nextRole);
+      const settledReqId = roleRequestIdRef.current;
       if (nextToken) {
-        const serverOrders = await fetchOrdersForToken(nextToken);
-        if (serverOrders) {
+        const [serverOrders] = await Promise.all([
+          fetchOrdersForToken(nextToken),
+          fetchOverviewForToken(nextToken, nextRole),
+        ]);
+        if (serverOrders && roleRequestIdRef.current === settledReqId) {
           setOrders(serverOrders);
         }
-        await fetchOverviewForToken(nextToken, nextRole);
       }
     },
-    [authenticateRole, fetchOrdersForToken, fetchOverviewForToken],
+    [authenticateRole, fetchOrdersForToken, fetchOverviewForToken, orders, products],
   );
 
   useEffect(() => {

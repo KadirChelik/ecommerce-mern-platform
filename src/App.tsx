@@ -10,8 +10,10 @@ import { Navbar, type ActiveView } from './components/Navbar.js';
 import { ProductDetailModal } from './components/ProductDetailModal.js';
 import { StoreProvider, useStore } from './context/StoreContext.js';
 
+const loadAdminDashboard = () => import('./components/AdminDashboard.js');
+
 const AdminDashboard = lazy(() =>
-  import('./components/AdminDashboard.js').then((m) => ({ default: m.AdminDashboard })),
+  loadAdminDashboard().then((m) => ({ default: m.AdminDashboard })),
 );
 const OrdersView = lazy(() =>
   import('./components/OrdersView.js').then((m) => ({ default: m.OrdersView })),
@@ -51,6 +53,18 @@ function AppShell() {
   };
 
   useEffect(() => () => clearToastTimers(), []);
+
+  useEffect(() => {
+    const warmTimer = window.setTimeout(() => void loadAdminDashboard(), 1200);
+    return () => window.clearTimeout(warmTimer);
+  }, []);
+
+  const handleNavigateView = (next: ActiveView) => {
+    if (next !== activeView) {
+      setActiveView(next);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
 
   const showAddedToast = (info: { title: string; size: string }) => {
     clearToastTimers();
@@ -127,42 +141,45 @@ function AppShell() {
         activeView={activeView}
         activeCategory={filters.category}
         onSelectCategory={handleSelectCategory}
-        onNavigateView={setActiveView}
+        onNavigateView={handleNavigateView}
         onOpenSearch={() => setCommandOpen(true)}
         onOpenCart={() => setCartOpen(true)}
+        onPrefetchAdmin={() => void loadAdminDashboard()}
       />
 
       <main className="flex-1">
-        {activeView === 'storefront' && (
-          <>
-            <HeroSection
-              onExploreCatalog={() =>
-                document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' })
-              }
-              onSelectCategory={(cat) => {
-                handleSelectCategory(cat);
-                document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            />
-            <CatalogSection
-              filters={filters}
-              onChangeFilters={updateFilters}
-              onSelectProduct={handleSelectProduct}
-              onItemAdded={showAddedToast}
-            />
-          </>
-        )}
+        <div key={activeView} className="animate-view-in">
+          {activeView === 'storefront' && (
+            <>
+              <HeroSection
+                onExploreCatalog={() =>
+                  document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' })
+                }
+                onSelectCategory={(cat) => {
+                  handleSelectCategory(cat);
+                  document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
+              <CatalogSection
+                filters={filters}
+                onChangeFilters={updateFilters}
+                onSelectProduct={handleSelectProduct}
+                onItemAdded={showAddedToast}
+              />
+            </>
+          )}
 
-        {activeView === 'orders' && (
-          <Suspense fallback={suspenseFallback}>
-            <OrdersView initialOrderNumber={trackedOrderNumber} />
-          </Suspense>
-        )}
-        {activeView === 'admin' && (
-          <Suspense fallback={suspenseFallback}>
-            <AdminDashboard />
-          </Suspense>
-        )}
+          {activeView === 'orders' && (
+            <Suspense fallback={suspenseFallback}>
+              <OrdersView initialOrderNumber={trackedOrderNumber} />
+            </Suspense>
+          )}
+          {activeView === 'admin' && (
+            <Suspense fallback={suspenseFallback}>
+              <AdminDashboard />
+            </Suspense>
+          )}
+        </div>
       </main>
 
       <footer className="border-t border-[#E7E5E0] bg-white py-8">
@@ -237,7 +254,7 @@ function AppShell() {
         open={commandOpen}
         onClose={() => setCommandOpen(false)}
         onSelectProduct={handleSelectProduct}
-        onNavigateView={setActiveView}
+        onNavigateView={handleNavigateView}
         onOpenCart={() => setCartOpen(true)}
       />
     </div>
